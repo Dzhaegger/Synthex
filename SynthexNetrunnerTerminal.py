@@ -269,8 +269,8 @@ class SynthexTerminalEnhanced(tk.Tk):
             risk = random.randint(1, 100)
             if risk > 70:  # 30% chance de éxito
                 self.write_to_console("ATTACK SUCCESSFUL - SYSTEM COMPROMISED", "#FF0000")
-                self.system_integrity -= random.randint(10, 30)
-                self.threat_level += random.randint(20, 50)
+                self.system_integrity = max(0, self.system_integrity - random.randint(10, 30))
+                self.threat_level = min(100, self.threat_level + random.randint(20, 50))
                 self.generate_trace()
             else:
                 self.write_to_console("ATTACK BLOCKED - FIREWALL ACTIVE", "#00FF00")
@@ -350,7 +350,7 @@ SYSTEM STATUS REPORT:
         self.write_to_console(status_text, color)
 
     def update_system_status(self):
-        """Actualiza los labels de estado"""
+        """Actualiza los labels de estado y verifica el estado crítico"""
         self.integrity_label.config(text=f"Integrity: {self.system_integrity}%")
         
         if self.threat_level == 0:
@@ -367,12 +367,17 @@ SYSTEM STATUS REPORT:
             color = "#FF0000"
         
         self.threat_label.config(text=f"Threat: {threat_text}", fg=color)
+        
+        # --- Lógica de Blackwall ---
+        if self.system_integrity <= 0:
+            self.show_blackwall()
+            # Opcional: Deshabilitar la interfaz después de mostrar el Blackwall
+            # self.console_input.config(state=tk.DISABLED)
 
     def system_scan(self):
         """Simula un escaneo del sistema"""
         self.write_to_console("Initiating system scan...", "#FFFF00")
         
-        # Simular proceso de escaneo
         def scan_process():
             scan_items = ["Memory sectors", "Network interfaces", "Security protocols", 
                          "Data integrity", "Threat signatures"]
@@ -381,7 +386,6 @@ SYSTEM STATUS REPORT:
                 time.sleep(0.5)
                 self.after(0, lambda i=item: self.write_to_console(f"Scanning {i}...", "#00FFFF"))
             
-            # Resultados aleatorios
             threats_found = random.randint(0, 3)
             self.after(0, lambda: self.write_to_console(f"Scan complete. {threats_found} potential threats detected.", "#00FF00"))
             
@@ -399,13 +403,14 @@ SYSTEM STATUS REPORT:
             self.active_processes.clear()
             self.update_system_status()
             self.write_to_console("EMERGENCY RESET COMPLETE - ALL SYSTEMS RESTORED", "#00FF00")
+            self.canvas.delete("all")
+            # Restaurar la visualización inicial si es necesario
+            # self.visualize_synthex_network(self.current_glyphs)
 
     def change_theme(self, event=None):
         """Cambia el tema de la aplicación"""
         self.current_theme = self.theme_var.get()
         self.apply_theme()
-        
-        # Actualizar todos los widgets con los nuevos colores
         self.setup_ui()
         self.write_to_console(f"Theme changed to: {self.current_theme}", "#FFFF00")
 
@@ -416,8 +421,39 @@ SYSTEM STATUS REPORT:
         self.console_output.config(state=tk.DISABLED)
         self.write_to_console("Console cleared.")
 
+    def show_blackwall(self):
+        """Dibuja el efecto del Muro Negro."""
+        self.canvas.delete("all")
+        self.write_to_console("WARNING: BLACKWALL PROTOCOL ACTIVATED - SYSTEM INTEGRITY LOST", "#FF0000")
+        self.write_to_console("ATTEMPTING TO CONTAIN HOSTILE ENTITIES...", "#FF4400")
+
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        
+        symbols = "0123456789ABCDEF!@#$%^&*"
+        
+        for _ in range(500):
+            x = random.randint(0, canvas_width)
+            y = random.randint(0, canvas_height)
+            char = random.choice(symbols)
+            size = random.randint(8, 20)
+            
+            color = random.choice(["#FF0000", "#FF4400", "#FF8800"])
+            self.canvas.create_text(x + random.randint(-3, 3), y + random.randint(-3, 3),
+                                    text=char, fill=color, font=("Consolas", size), tags="blackwall")
+
+        # Dibujar conexiones caóticas para el muro negro
+        for _ in range(100):
+            x1, y1 = random.randint(0, canvas_width), random.randint(0, canvas_height)
+            x2, y2 = random.randint(0, canvas_width), random.randint(0, canvas_height)
+            self.canvas.create_line(x1, y1, x2, y2, fill="#FF4400", width=1, dash=(2, 1), tags="blackwall")
+
     def visualize_synthex_network(self, glyphs, original_text=""):
         """Visualiza la red Synthex en el canvas"""
+        # Si el Blackwall está activo, no visualizar la red normal
+        if self.system_integrity <= 0:
+            return
+            
         self.canvas.delete("all")
         self.glyph_coords.clear()
         self.glyph_tooltips.clear()
@@ -544,6 +580,10 @@ SYSTEM STATUS REPORT:
 
     def animate_connections(self):
         """Anima las conexiones"""
+        # No animar si el Blackwall está activo
+        if self.system_integrity <= 0:
+            return
+
         connections = self.canvas.find_withtag("connection")
         for conn in connections:
             current_color = self.canvas.itemcget(conn, "fill")
@@ -557,6 +597,10 @@ SYSTEM STATUS REPORT:
 
     def animate_data_flow(self):
         """Anima flujo de datos"""
+        # No animar si el Blackwall está activo
+        if self.system_integrity <= 0:
+            return
+
         # Crear puntos de datos que se mueven por las conexiones
         if len(self.glyph_coords) >= 2 and random.random() < 0.3:
             # Seleccionar dos glifos aleatorios
@@ -598,11 +642,9 @@ SYSTEM STATUS REPORT:
         manual_window.geometry("900x700")
         manual_window.configure(bg=self.bg_color)
 
-        # Frame con scrollbar
         main_frame = tk.Frame(manual_window, bg=self.bg_color)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Text widget con scrollbar
         manual_text = tk.Text(main_frame, bg=self.bg_color, fg=self.text_color, 
                              font=("Courier", 10), padx=10, pady=10, wrap="word")
         scrollbar = tk.Scrollbar(main_frame, command=manual_text.yview)
