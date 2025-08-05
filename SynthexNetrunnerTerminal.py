@@ -478,14 +478,16 @@ SYSTEM STATUS REPORT:
         word = REV_SYNTHEX_DICTIONARY.get(glyph, "")
         
         # Colores según tipo de glifo
-        if word in ["breach", "corrupt", "virus", "worm", "trojan", "threat", "error"]:
+        if word in ["breach", "corrupt", "virus", "worm", "trojan", "threat", "error", "spyware", "malware", "keylogger"]:
             return "#FF0000"  # Rojo para amenazas
-        elif word in ["firewall", "security", "stable", "access", "backup"]:
+        elif word in ["firewall", "security", "stable", "access", "backup","trace"]:
             return "#00FF00"  # Verde para seguridad
-        elif word in ["ai", "sentience", "construct", "entity"]:
+        elif word in ["ai", "sentience", "construct", "entity", "ghost", "identity", "memory"]:
             return "#00FFFF"  # Cyan para IA
+        elif word in ["chaos", "anomaly"]:
+            return "#9900FF"  # Purple for Critical States
         else:
-            return self.text_color  # Color normal
+            return "#FFFB00"  # Color normal
 
     def draw_connections(self, is_chaotic):
         """Dibuja conexiones entre glifos"""
