@@ -51,14 +51,9 @@ GLYPH_SHAPES = {
     "⍎": "backup", "⍏": "restore", "⍑": "mirror", "⍒": "clone", "⍓": "sync"
 }
 
-# Configuración de temas
-THEMES = {
-    "classic": {"bg": "#000000", "text": "#FF0000", "accent": "#00FF00"},
-    "ice": {"bg": "#001122", "text": "#00CCFF", "accent": "#FFFFFF"},
-    "fire": {"bg": "#110000", "text": "#FF4400", "accent": "#FFAA00"},
-    "matrix": {"bg": "#000000", "text": "#00FF00", "accent": "#FFFFFF"},
-    "neon": {"bg": "#0A0A0A", "text": "#FF00FF", "accent": "#00FFFF"}
-}
+# Listas para la lógica de animación
+ATTACK_GLYPH_WORDS = ["breach", "corrupt", "virus", "worm", "trojan", "exploit", "botnet", "ransomware", "spyware", "malware", "keylogger", "threat", "anomaly", "chaos"]
+SECURITY_GLYPH_WORDS = ["firewall", "security", "stable", "sandbox", "honeypot", "whitelist", "quarantine", "patch", "backup"]
 
 class SynthexTerminalEnhanced(tk.Tk):
     def __init__(self):
@@ -371,8 +366,7 @@ SYSTEM STATUS REPORT:
         # --- Lógica de Blackwall ---
         if self.system_integrity <= 0:
             self.show_blackwall()
-            # Opcional: Deshabilitar la interfaz después de mostrar el Blackwall
-            # self.console_input.config(state=tk.DISABLED)
+            self.console_input.config(state=tk.DISABLED)
 
     def system_scan(self):
         """Simula un escaneo del sistema"""
@@ -404,8 +398,8 @@ SYSTEM STATUS REPORT:
             self.update_system_status()
             self.write_to_console("EMERGENCY RESET COMPLETE - ALL SYSTEMS RESTORED", "#00FF00")
             self.canvas.delete("all")
-            # Restaurar la visualización inicial si es necesario
-            # self.visualize_synthex_network(self.current_glyphs)
+            self.console_input.config(state=tk.NORMAL)
+            self.visualize_synthex_network(self.current_glyphs)
 
     def change_theme(self, event=None):
         """Cambia el tema de la aplicación"""
@@ -442,7 +436,6 @@ SYSTEM STATUS REPORT:
             self.canvas.create_text(x + random.randint(-3, 3), y + random.randint(-3, 3),
                                     text=char, fill=color, font=("Consolas", size), tags="blackwall")
 
-        # Dibujar conexiones caóticas para el muro negro
         for _ in range(100):
             x1, y1 = random.randint(0, canvas_width), random.randint(0, canvas_height)
             x2, y2 = random.randint(0, canvas_width), random.randint(0, canvas_height)
@@ -450,7 +443,6 @@ SYSTEM STATUS REPORT:
 
     def visualize_synthex_network(self, glyphs, original_text=""):
         """Visualiza la red Synthex en el canvas"""
-        # Si el Blackwall está activo, no visualizar la red normal
         if self.system_integrity <= 0:
             return
             
@@ -466,15 +458,12 @@ SYSTEM STATUS REPORT:
             self.after(50, lambda: self.visualize_synthex_network(glyphs, original_text))
             return
 
-        # Determinar si es caótico
         is_chaotic = UNKNOWN_GLYPH in glyphs or self.threat_level > 50
         
         if not glyphs:
             return
 
-        # Posicionar glifos
         if is_chaotic:
-            # Distribución caótica
             for i, glyph in enumerate(glyphs):
                 x = random.randint(50, canvas_width - 50)
                 y = random.randint(50, canvas_height - 50)
@@ -483,11 +472,9 @@ SYSTEM STATUS REPORT:
                 color = self.get_glyph_color(glyph)
                 self.draw_glyph_shape(glyph, x, y, 20, color)
                 
-                # Agregar tooltip info
                 word = REV_SYNTHEX_DICTIONARY.get(glyph, "unknown")
                 self.glyph_tooltips[i] = f"{glyph} - {word}"
         else:
-            # Distribución ordenada en círculo
             num_glyphs = len(glyphs)
             center_x, center_y = canvas_width / 2, canvas_height / 2
             radius = min(canvas_width, canvas_height) / 3
@@ -502,21 +489,18 @@ SYSTEM STATUS REPORT:
                 color = self.get_glyph_color(glyph)
                 self.draw_glyph_shape(glyph, x, y, 20, color)
                 
-                # Agregar tooltip info
                 word = REV_SYNTHEX_DICTIONARY.get(glyph, "unknown")
                 self.glyph_tooltips[i] = f"{glyph} - {word}"
 
-        # Dibujar conexiones
         self.draw_connections(is_chaotic)
 
     def get_glyph_color(self, glyph):
         """Determina el color del glifo basado en su tipo"""
         word = REV_SYNTHEX_DICTIONARY.get(glyph, "")
         
-        # Colores según tipo de glifo
-        if word in ["breach", "corrupt", "virus", "worm", "trojan", "threat", "error", "spyware", "malware", "keylogger"]:
+        if word in ["breach", "corrupt", "virus", "worm", "trojan", "threat", "error", "spyware", "malware", "keylogger", "exploit"]:
             return "#FF0000"  # Rojo para amenazas
-        elif word in ["firewall", "security", "stable", "access", "backup","trace"]:
+        elif word in ["firewall", "security", "stable", "access", "backup","trace", "honeypot", "sandbox", "quarantine", "whitelist", "patch"]:
             return "#00FF00"  # Verde para seguridad
         elif word in ["ai", "sentience", "construct", "entity", "ghost", "identity", "memory"]:
             return "#00FFFF"  # Cyan para IA
@@ -531,7 +515,6 @@ SYSTEM STATUS REPORT:
             return
         
         if is_chaotic:
-            # Conexiones caóticas
             num_connections = min(len(self.glyph_coords) * 2, 20)
             for _ in range(num_connections):
                 i, j = random.sample(list(self.glyph_coords.keys()), 2)
@@ -541,7 +524,6 @@ SYSTEM STATUS REPORT:
                 self.canvas.create_line(x1, y1, x2, y2, fill="#FF4400", 
                                       width=2, dash=(3, 2), tags="connection")
         else:
-            # Conexiones ordenadas
             indices = list(self.glyph_coords.keys())
             for i in range(len(indices)):
                 j = (i + 1) % len(indices)
@@ -553,19 +535,17 @@ SYSTEM STATUS REPORT:
 
     def show_glyph_tooltip(self, event):
         """Muestra tooltip al pasar sobre un glifo"""
-        # Esta funcionalidad se puede expandir para mostrar información detallada
         pass
 
     def on_glyph_click(self, event):
         """Maneja clicks en glifos"""
-        # Encontrar el glifo más cercano al click
         click_x, click_y = event.x, event.y
         min_distance = float('inf')
         closest_glyph = None
         
         for i, (x, y) in self.glyph_coords.items():
             distance = math.sqrt((click_x - x)**2 + (click_y - y)**2)
-            if distance < min_distance and distance < 30:  # Radio de 30 píxeles
+            if distance < min_distance and distance < 30:
                 min_distance = distance
                 closest_glyph = i
         
@@ -576,11 +556,10 @@ SYSTEM STATUS REPORT:
     def start_animations(self):
         """Inicia las animaciones del canvas"""
         self.animate_connections()
-        self.animate_data_flow()
+        self.animate_data_flow_between_glyphs()
 
     def animate_connections(self):
         """Anima las conexiones"""
-        # No animar si el Blackwall está activo
         if self.system_integrity <= 0:
             return
 
@@ -595,46 +574,62 @@ SYSTEM STATUS REPORT:
         
         self.after(500, self.animate_connections)
 
-    def animate_data_flow(self):
-        """Anima flujo de datos"""
-        # No animar si el Blackwall está activo
+    def animate_data_flow_between_glyphs(self):
+        """Crea y anima puntos de datos moviéndose entre glifos con lógica"""
         if self.system_integrity <= 0:
             return
 
-        # Crear puntos de datos que se mueven por las conexiones
-        if len(self.glyph_coords) >= 2 and random.random() < 0.3:
-            # Seleccionar dos glifos aleatorios
-            indices = list(self.glyph_coords.keys())
-            start_idx, end_idx = random.sample(indices, 2)
-            start_x, start_y = self.glyph_coords[start_idx]
-            end_x, end_y = self.glyph_coords[end_idx]
-            
-            # Crear punto de datos
+        if len(self.glyph_coords) < 2 or random.random() < 0.7:
+            # Controla la frecuencia de los puntos de datos para que no saturen la pantalla
+            self.after(100, self.animate_data_flow_between_glyphs)
+            return
+
+        # Seleccionar un glifo de origen
+        source_index = random.choice(list(self.glyph_coords.keys()))
+        start_x, start_y = self.glyph_coords[source_index]
+        source_glyph = self.current_glyphs[source_index]
+        source_word = REV_SYNTHEX_DICTIONARY.get(source_glyph, "")
+        
+        target_index = None
+
+        if source_word in ATTACK_GLYPH_WORDS:
+            # Si el origen es un ataque, buscar un objetivo de seguridad
+            security_indices = [i for i, glyph in enumerate(self.current_glyphs) 
+                                if REV_SYNTHEX_DICTIONARY.get(glyph, "") in SECURITY_GLYPH_WORDS]
+            if security_indices:
+                target_index = random.choice(security_indices)
+        
+        if target_index is None:
+            # Si no es un ataque o no hay objetivos de seguridad, elegir un destino aleatorio
+            other_indices = [i for i in self.glyph_coords.keys() if i != source_index]
+            if other_indices:
+                target_index = random.choice(other_indices)
+
+        if target_index is not None:
+            end_x, end_y = self.glyph_coords[target_index]
+            data_color = self.get_glyph_color(source_glyph)
+
             point = self.canvas.create_oval(start_x-2, start_y-2, start_x+2, start_y+2,
-                                          fill="#FFFFFF", outline="", tags="dataflow")
-            
-            # Animar movimiento
+                                            fill=data_color, outline="", tags="dataflow")
             self.animate_point_to_target(point, start_x, start_y, end_x, end_y, 0)
         
-        self.after(1000, self.animate_data_flow)
+        self.after(100, self.animate_data_flow_between_glyphs)
 
     def animate_point_to_target(self, point, start_x, start_y, end_x, end_y, step):
         """Anima un punto de datos moviéndose de un glifo a otro"""
-        if step > 20:  # 20 pasos para completar la animación
+        if step > 40:
             self.canvas.delete(point)
             return
         
-        # Calcular posición interpolada
-        progress = step / 20.0
+        progress = step / 40.0
         current_x = start_x + (end_x - start_x) * progress
         current_y = start_y + (end_y - start_y) * progress
         
-        # Mover el punto
         coords = self.canvas.coords(point)
-        if coords:  # Verificar que el punto aún existe
+        if coords:
             self.canvas.coords(point, current_x-2, current_y-2, current_x+2, current_y+2)
-            self.after(50, lambda: self.animate_point_to_target(point, start_x, start_y, end_x, end_y, step + 1))
-
+            self.after(20, lambda: self.animate_point_to_target(point, start_x, start_y, end_x, end_y, step + 1))
+    
     def show_manual(self):
         """Muestra el manual de Synthex expandido"""
         manual_window = tk.Toplevel(self)
@@ -821,12 +816,10 @@ END TRANSMISSION
         manual_text.insert(tk.END, manual_content)
         manual_text.config(state=tk.DISABLED)
 
-    # Métodos de dibujo de glifos (mantener todos los originales y agregar nuevos)
     def draw_glyph_shape(self, glyph, x, y, size, color):
         """Dibuja la forma correspondiente a un glifo"""
         shape_name = GLYPH_SHAPES.get(glyph, "unknown")
         
-        # Glifos básicos (mantener todos los métodos originales)
         if shape_name == "square_block": self._draw_square_block(x, y, size, color)
         elif shape_name == "omega": self._draw_omega(x, y, size, color)
         elif shape_name == "dotted_block": self._draw_dotted_block(x, y, size, color)
@@ -867,7 +860,6 @@ END TRANSMISSION
         elif shape_name == "threat": self._draw_threat(x, y, size, color)
         elif shape_name == "man": self._draw_man(x, y, size, color)
         
-        # Nuevos glifos
         elif shape_name == "keyboard": self._draw_keyboard(x, y, size, color)
         elif shape_name == "admin_key": self._draw_admin_key(x, y, size, color)
         elif shape_name == "backdoor": self._draw_backdoor(x, y, size, color)
@@ -894,11 +886,9 @@ END TRANSMISSION
         elif shape_name == "clone": self._draw_clone(x, y, size, color)
         elif shape_name == "sync": self._draw_sync(x, y, size, color)
         else:
-            # Glifo desconocido
             self.canvas.create_rectangle(x-size, y-size, x+size, y+size, outline=color)
             self.canvas.create_text(x, y, text="?", fill=color, font=("Courier", 18, "bold"))
 
-    # Métodos de dibujo originales (mantener todos)
     def _draw_square_block(self, x, y, size, color):
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y - size, x + size, y + size, fill=color, width=1)
@@ -1086,11 +1076,8 @@ END TRANSMISSION
         self.canvas.create_arc(x-size, y, x, y+size, start=180, extent=90, style=tk.ARC, outline=color, width=1)
         self.canvas.create_arc(x, y, x+size, y+size, start=270, extent=90, style=tk.ARC, outline=color, width=1)
 
-    # Nuevos métodos de dibujo para glifos expandidos
     def _draw_keyboard(self, x, y, size, color):
-        """Dibuja el glifo '⌨' (root/keyboard)"""
         self.canvas.create_rectangle(x - size, y - size/2, x + size, y + size/2, outline=color, width=1)
-        # Teclas pequeñas
         for i in range(-2, 3):
             for j in range(-1, 2):
                 self.canvas.create_rectangle(x + i*size/3, y + j*size/4, 
@@ -1098,35 +1085,26 @@ END TRANSMISSION
                                            outline=color, width=1)
 
     def _draw_admin_key(self, x, y, size, color):
-        """Dibuja el glifo '⌬' (admin)"""
-        # Forma de llave
         self.canvas.create_oval(x - size/2, y - size, x + size/2, y - size/2, outline=color, width=1)
         self.canvas.create_line(x, y - size/2, x, y + size, fill=color, width=1)
         self.canvas.create_line(x, y, x + size/2, y, fill=color, width=1)
         self.canvas.create_line(x, y + size/2, x + size/3, y + size/2, fill=color, width=1)
 
     def _draw_backdoor(self, x, y, size, color):
-        """Dibuja el glifo '⌹' (backdoor)"""
-        # Puerta con abertura oculta
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size/2, y - size, x - size/2, y + size, fill=color, width=1)
         self.canvas.create_oval(x - size/3, y - size/4, x - size/6, y, fill=color, outline=color)
 
     def _draw_botnet(self, x, y, size, color):
-        """Dibuja el glifo '⌶' (botnet)"""
-        # Red de nodos conectados
         center_positions = [(x, y-size/2), (x-size/2, y+size/2), (x+size/2, y+size/2)]
         for pos in center_positions:
             self.canvas.create_oval(pos[0]-3, pos[1]-3, pos[0]+3, pos[1]+3, fill=color, outline=color)
-        # Conexiones
         for i in range(len(center_positions)):
             for j in range(i+1, len(center_positions)):
                 self.canvas.create_line(center_positions[i][0], center_positions[i][1],
                                       center_positions[j][0], center_positions[j][1], fill=color, width=1)
 
     def _draw_virus(self, x, y, size, color):
-        """Dibuja el glifo '⌼' (virus)"""
-        # Forma viral con espinas
         self.canvas.create_oval(x - size/2, y - size/2, x + size/2, y + size/2, outline=color, width=1)
         for i in range(8):
             angle = i * math.pi / 4
@@ -1137,8 +1115,6 @@ END TRANSMISSION
             self.canvas.create_line(x1, y1, x2, y2, fill=color, width=1)
 
     def _draw_worm(self, x, y, size, color):
-        """Dibuja el glifo '⌿' (worm)"""
-        # Forma serpenteante
         points = []
         for i in range(10):
             angle = i * math.pi / 5
@@ -1148,69 +1124,50 @@ END TRANSMISSION
         self.canvas.create_line(points, fill=color, width=2, smooth=True)
 
     def _draw_trojan(self, x, y, size, color):
-        """Dibuja el glifo '⍀' (trojan)"""
-        # Caballo de Troya estilizado
         self.canvas.create_rectangle(x - size, y, x + size, y + size, outline=color, width=1)
         self.canvas.create_polygon(x - size/2, y, x, y - size, x + size/2, y, outline=color, fill="")
         self.canvas.create_oval(x - size/4, y + size/4, x + size/4, y + 3*size/4, outline=color, width=1)
 
     def _draw_keylogger(self, x, y, size, color):
-        """Dibuja el glifo '⍁' (keylogger)"""
-        # Teclado con ojo
         self.canvas.create_rectangle(x - size, y, x + size, y + size/2, outline=color, width=1)
         self.canvas.create_oval(x - size/3, y - size, x + size/3, y - size/3, outline=color, width=1)
         self.canvas.create_oval(x - size/6, y - 5*size/6, x + size/6, y - 2*size/3, fill=color, outline=color)
 
     def _draw_ransomware(self, x, y, size, color):
-        """Dibuja el glifo '⍂' (ransomware)"""
-        # Candado con signo de dinero
         self.canvas.create_rectangle(x - size/2, y, x + size/2, y + size, outline=color, width=1)
         self.canvas.create_arc(x - size/2, y - size, x + size/2, y, start=0, extent=180, style=tk.ARC, outline=color, width=1)
         self.canvas.create_text(x, y + size/2, text="$", fill=color, font=("Courier", int(size), "bold"))
 
     def _draw_spyware(self, x, y, size, color):
-        """Dibuja el glifo '⍃' (spyware)"""
-        # Ojo con antena
         self.canvas.create_oval(x - size, y - size/2, x + size, y + size/2, outline=color, width=1)
         self.canvas.create_oval(x - size/3, y - size/6, x + size/3, y + size/6, fill=color, outline=color)
         self.canvas.create_line(x, y - size/2, x, y - size, fill=color, width=1)
         self.canvas.create_line(x - size/4, y - 3*size/4, x + size/4, y - 3*size/4, fill=color, width=1)
 
     def _draw_malware(self, x, y, size, color):
-        """Dibuja el glifo '⍄' (malware)"""
-        # Código malicioso estilizado
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y - size/2, x + size, y - size/2, fill=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
         self.canvas.create_line(x - size, y + size/2, x + size, y + size/2, fill=color, width=1)
-        # X sobre el código
         self.canvas.create_line(x - size/2, y - size/2, x + size/2, y + size/2, fill="#FF0000", width=2)
         self.canvas.create_line(x - size/2, y + size/2, x + size/2, y - size/2, fill="#FF0000", width=2)
 
     def _draw_honeypot(self, x, y, size, color):
-        """Dibuja el glifo '⍅' (honeypot)"""
-        # Tarro de miel con trampa
         self.canvas.create_oval(x - size, y - size/2, x + size, y + size, outline=color, width=1)
         self.canvas.create_rectangle(x - size/3, y - size, x + size/3, y - size/2, outline=color, width=1)
         self.canvas.create_polygon(x - size/2, y, x, y - size/4, x + size/2, y, outline="#FF4400", fill="")
 
     def _draw_sandbox(self, x, y, size, color):
-        """Dibuja el glifo '⍆' (sandbox)"""
-        # Caja de arena con límites
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=2)
         self.canvas.create_rectangle(x - size/2, y - size/2, x + size/2, y + size/2, outline=color, width=1, dash=(3, 3))
         self.canvas.create_oval(x - size/4, y - size/4, x + size/4, y + size/4, fill=color, outline=color)
 
     def _draw_quarantine(self, x, y, size, color):
-        """Dibuja el glifo '⍇' (quarantine)"""
-        # Símbolo de cuarentena
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=2)
         self.canvas.create_line(x - size, y - size, x + size, y + size, fill="#FF0000", width=3)
         self.canvas.create_line(x - size, y + size, x + size, y - size, fill="#FF0000", width=3)
 
     def _draw_whitelist(self, x, y, size, color):
-        """Dibuja el glifo '⍈' (whitelist)"""
-        # Lista con checkmarks
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         for i in range(3):
             y_pos = y - size/2 + i * size/2
@@ -1219,76 +1176,52 @@ END TRANSMISSION
             self.canvas.create_line(x - size/2, y_pos, x - size/4, y_pos - size/4, fill="#00FF00", width=2)
 
     def _draw_blacklist(self, x, y, size, color):
-        """Dibuja el glifo '⍉' (blacklist)"""
-        # Lista con X marks
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         for i in range(3):
             y_pos = y - size/2 + i * size/2
             self.canvas.create_line(x - size/2, y_pos, x + size/2, y_pos, fill=color, width=1)
-            # X mark
             self.canvas.create_line(x - 3*size/4, y_pos - size/8, x - size/4, y_pos + size/8, fill="#FF0000", width=2)
             self.canvas.create_line(x - 3*size/4, y_pos + size/8, x - size/4, y_pos - size/8, fill="#FF0000", width=2)
 
     def _draw_exploit(self, x, y, size, color):
-        """Dibuja el glifo '⍊' (exploit)"""
-        # Grieta o brecha
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        # Línea de grieta zigzag
         points = [x - size, y - size, x - size/2, y - size/2, x, y - size, 
                  x + size/2, y - size/2, x + size, y + size]
         self.canvas.create_line(points, fill="#FF4400", width=3)
 
     def _draw_vulnerability(self, x, y, size, color):
-        """Dibuja el glifo '⍋' (vulnerability)"""
-        # Escudo roto
         self.canvas.create_polygon(x, y - size, x - size, y, x - size/2, y + size, 
                                  x + size/2, y + size, x + size, y, outline=color, fill="")
         self.canvas.create_line(x - size/2, y - size/2, x + size/2, y + size/2, fill="#FF0000", width=3)
 
     def _draw_patch(self, x, y, size, color):
-        """Dibuja el glifo '⍌' (patch)"""
-        # Parche sobre grieta
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        # Grieta
         self.canvas.create_line(x - size, y, x + size, y, fill="#FF0000", width=2)
-        # Parche
         self.canvas.create_rectangle(x - size/2, y - size/4, x + size/2, y + size/4, 
                                    fill="#00FF00", outline="#00FF00")
 
     def _draw_update(self, x, y, size, color):
-        """Dibuja el glifo '⍍' (update)"""
-        # Flecha circular (actualización)
         self.canvas.create_arc(x - size, y - size, x + size, y + size, start=45, extent=270, 
                              style=tk.ARC, outline=color, width=2)
-        # Punta de flecha
         self.canvas.create_polygon(x + size/2, y - size, x + size, y - size/2, 
                                  x + 3*size/4, y - 3*size/4, outline=color, fill=color)
 
     def _draw_backup(self, x, y, size, color):
-        """Dibuja el glifo '⍎' (backup)"""
-        # Dos rectángulos superpuestos
         self.canvas.create_rectangle(x - size, y - size, x + size/2, y + size/2, outline=color, width=1)
         self.canvas.create_rectangle(x - size/2, y - size/2, x + size, y + size, outline=color, width=2)
 
     def _draw_restore(self, x, y, size, color):
-        """Dibuja el glifo '⍏' (restore)"""
-        # Flecha curvada hacia atrás
         self.canvas.create_arc(x - size, y - size, x + size, y + size, start=135, extent=270, 
                              style=tk.ARC, outline=color, width=2)
-        # Punta de flecha
         self.canvas.create_polygon(x - size/2, y - size, x - size, y - size/2, 
                                  x - 3*size/4, y - 3*size/4, outline=color, fill=color)
 
     def _draw_mirror(self, x, y, size, color):
-        """Dibuja el glifo '⍑' (mirror)"""
-        # Dos formas idénticas reflejadas
         self.canvas.create_rectangle(x - size, y - size, x, y + size, outline=color, width=1)
         self.canvas.create_rectangle(x, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x, y - size, x, y + size, fill=color, width=2)
 
     def _draw_clone(self, x, y, size, color):
-        """Dibuja el glifo '⍒' (clone)"""
-        # Múltiples copias superpuestas
         for i in range(3):
             offset = i * size / 4
             self.canvas.create_oval(x - size + offset, y - size + offset, 
@@ -1296,13 +1229,10 @@ END TRANSMISSION
                                   outline=color, width=1)
 
     def _draw_sync(self, x, y, size, color):
-        """Dibuja el glifo '⍓' (sync)"""
-        # Dos flechas circulares
         self.canvas.create_arc(x - size, y - size/2, x, y + size/2, start=0, extent=180, 
                              style=tk.ARC, outline=color, width=2)
         self.canvas.create_arc(x, y - size/2, x + size, y + size/2, start=180, extent=180, 
                              style=tk.ARC, outline=color, width=2)
-        # Puntas de flecha
         self.canvas.create_polygon(x - size/2, y - size/2, x - 3*size/4, y - size/4, 
                                  x - 3*size/4, y - 3*size/4, outline=color, fill=color)
         self.canvas.create_polygon(x + size/2, y + size/2, x + 3*size/4, y + size/4, 
