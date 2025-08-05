@@ -400,3 +400,4 @@ class SynthexTerminal(tk.Tk):
 if __name__ == "__main__":
     app = SynthexTerminal()
     app.mainloop()
+    # --- Clase SynthexTerminal ---
