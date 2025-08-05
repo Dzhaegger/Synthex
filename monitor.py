@@ -1,55 +1,21 @@
 import tkinter as tk
 import psutil
 import random
-import time
 import math
+from datetime import datetime
 
 # --- Configuración del lenguaje Synthex ---
 # El "diccionario" de Synthex mapea palabras clave a glifos abstractos.
 SYNTHEX_DICTIONARY = {
-    "hello": "░",
-    "world": "Ω",
-    "message": "▒",
-    "ai": "▓",
-    "network": "⊕",
-    "encrypt": "Ψ",
-    "decrypt": "Φ",
-    "chaos": "§",
-    "stable": "Δ",
-    "link": "↔",
-    "system": "Σ",
-    "breach": "⍟",
-    "code": "⎚",
-    "data": "⍬",
-    "error": "⊘",
-    "memory": "⌂",
-    "identity": "∞",
-    "ghost": "⊚",
-    "protocol": "⍱",
-    "firewall": "◫",
-    "trace": "⍒",
-    "jack_in": "⍐",
-    "construct": "⍦",
-    "entity": "⍰",
-    "sentience": "⍲",
-    "anomaly": "⌖",
-    "data_stream": "⍨",
-    "probe": "⍴",
-    "divert": "⍬⍬",
-    "corrupt": "⍟§",
-    "nullify": "ΨΦ",
-    "access": "⎇",
-    "security": "⌠",
-    "core": "◉",
-    "digital": "⎚⎚",
-    "reality": "∞∞",
-    "interface": "⌤",
-    "threat": "⍞",
-    "man": "⌘"
+    "hello": "░", "world": "Ω", "message": "▒", "ai": "▓", "network": "⊕",
+    "encrypt": "Ψ", "decrypt": "Φ", "chaos": "§", "stable": "Δ", "link": "↔",
+    "system": "Σ", "breach": "⍟", "code": "⎚", "data": "⍬", "error": "⊘",
+    "memory": "⌂", "identity": "∞", "ghost": "⊚", "protocol": "⍱", "firewall": "◫",
+    "trace": "⍒", "jack_in": "⍐", "construct": "⍦", "entity": "⍰", "sentience": "⍲",
+    "anomaly": "⌖", "data_stream": "⍨", "probe": "⍴", "divert": "⍬⍬", "corrupt": "⍟§",
+    "nullify": "ΨΦ", "access": "⎇", "security": "⌠", "core": "◉", "digital": "⎚⎚",
+    "reality": "∞∞", "interface": "⌤", "threat": "⍞", "man": "⌘"
 }
-
-# Invertir el diccionario para una rápida búsqueda de desencriptación
-REV_SYNTHEX_DICTIONARY = {v: k for k, v in SYNTHEX_DICTIONARY.items()}
 
 # Mapeo de glifos a formas para el visualizador
 GLYPH_SHAPES = {
@@ -67,44 +33,68 @@ GLYPH_SHAPES = {
 
 # --- Configuración de la UI ---
 BG_COLOR = "#000000"
-TEXT_COLOR = "#00FF00"  # Verde neón para el monitor
-ACCENT_COLOR = "#FF0000"  # Rojo para alertas
+TEXT_COLOR = "#00FF00"
+ACCENT_COLOR = "#FF0000"
 FONT = ("Courier", 12)
-BUTTON_FONT = ("Courier", 14, "bold")
+TITLE_FONT = ("Courier", 18, "bold")
+MONITOR_FONT = ("Courier", 10)
+BUTTON_FONT = ("Courier", 12, "bold")
+BUTTON_STYLE = {
+    "background": BG_COLOR,
+    "foreground": TEXT_COLOR,
+    "activebackground": TEXT_COLOR,
+    "activeforeground": BG_COLOR,
+    "font": BUTTON_FONT,
+    "borderwidth": 2,
+    "relief": "groove",
+    "highlightbackground": TEXT_COLOR,
+    "highlightcolor": TEXT_COLOR
+}
 
-class SynthexMonitor(tk.Tk):
+class SynthexTerminal(tk.Tk):
     """
-    Clase principal de la aplicación, hereda de tkinter.Tk.
-    Monitorea la actividad del sistema y la visualiza con glifos de Synthex.
+    Clase principal de la aplicación, unifica el visualizador Synthex
+    con un panel de monitoreo de sistema en una sola interfaz.
     """
     def __init__(self):
         super().__init__()
-        self.title("Synthex System Monitor")
-        self.geometry("1000x600")
+        self.title("Synthex Terminal: Monitor de Sistema")
+        self.geometry("1000x800")
         self.configure(bg=BG_COLOR)
-
-        # Contenedor principal
-        main_frame = tk.Frame(self, bg=BG_COLOR)
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Panel de visualización
-        self.canvas = tk.Canvas(main_frame, bg=BG_COLOR, highlightthickness=1, highlightbackground=TEXT_COLOR)
-        self.canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # Etiqueta de estado en la parte inferior
-        self.status_label = tk.Label(main_frame, text="Monitoring system activity...", bg=BG_COLOR, fg=TEXT_COLOR, font=FONT)
-        self.status_label.pack(pady=5)
 
         self.last_net_stats = psutil.net_io_counters()
         self.glyph_stream = []
-        self.max_glyphs = 50  # Máximo de glifos en pantalla
+        self.max_glyphs = 100
+        self.breach_active = False
+
+        # Panel principal con dos secciones (visualizador y monitor)
+        self.main_panel = tk.Frame(self, bg=BG_COLOR)
+        self.main_panel.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Frame del visualizador de glifos
+        self.visualizer_frame = tk.Frame(self.main_panel, bg=BG_COLOR, relief="groove", borderwidth=2)
+        self.visualizer_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        self.canvas = tk.Canvas(self.visualizer_frame, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # Frame del monitor de datos
+        self.monitor_frame = tk.Frame(self.main_panel, bg=BG_COLOR, relief="groove", borderwidth=2)
+        self.monitor_frame.pack(fill=tk.X, pady=(10, 0))
+        self.monitor_title = tk.Label(self.monitor_frame, text="< ANÁLISIS DE DATOS DEL SISTEMA >", bg=BG_COLOR, fg=TEXT_COLOR, font=TITLE_FONT)
+        self.monitor_title.pack(pady=5)
+        self.data_monitor = tk.Text(self.monitor_frame, bg=BG_COLOR, fg=TEXT_COLOR, font=MONITOR_FONT, height=10, state="disabled", insertbackground=TEXT_COLOR, borderwidth=0)
+        self.data_monitor.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Botón de acción en la parte inferior
+        self.breach_button = tk.Button(self, text="[ PROTOCOLO DE INTRUSIÓN ]", command=self.trigger_breach, **BUTTON_STYLE)
+        self.breach_button.pack(pady=10)
 
         self.animate_canvas()
-        self.monitor_system()
+        self.update_system_data()
 
-    def monitor_system(self):
+    def update_system_data(self):
         """
-        Obtiene datos del sistema y los traduce a glifos de Synthex.
+        Obtiene datos del sistema y actualiza el visualizador de glifos y el panel de datos.
         """
         cpu_percent = psutil.cpu_percent(interval=1)
         net_stats = psutil.net_io_counters()
@@ -112,37 +102,57 @@ class SynthexMonitor(tk.Tk):
         net_recv = net_stats.bytes_recv - self.last_net_stats.bytes_recv
         self.last_net_stats = net_stats
         
-        # Lógica para generar glifos basados en el estado del sistema
-        new_glyphs = []
+        mem_info = psutil.virtual_memory()
+        disk_info = psutil.disk_usage('/')
         
-        # Glifos basados en el uso de CPU
-        if cpu_percent > 80:
+        # --- Generación de Glifos ---
+        new_glyphs = []
+        if self.breach_active:
+            new_glyphs.extend(random.choices(["⍟", "§", "⊘", "⍞"], k=3))
+        elif cpu_percent > 70:
             new_glyphs.append("§")  # Caos: alto uso de CPU
-            self.status_label.config(text=f"CPU overload! CPU: {cpu_percent}%", fg=ACCENT_COLOR)
-        elif cpu_percent > 50:
+        elif cpu_percent > 40:
             new_glyphs.append("▓")  # AI: Procesamiento intenso
-            self.status_label.config(text=f"High CPU activity. CPU: {cpu_percent}%", fg=TEXT_COLOR)
         else:
             new_glyphs.append("Δ")  # Estable: CPU normal
-            self.status_label.config(text=f"System stable. CPU: {cpu_percent}%", fg=TEXT_COLOR)
 
-        # Glifos basados en la actividad de la red
-        if net_sent > 1000000 or net_recv > 1000000: # Más de 1MB/s
-            new_glyphs.append("⍟") # Breach: Gran tráfico de red
-            self.status_label.config(text="Network breach detected! High data flow.", fg=ACCENT_COLOR)
+        if net_sent > 500000 or net_recv > 500000:
+            new_glyphs.append("⍟")
         elif net_sent > 0 or net_recv > 0:
-            new_glyphs.append("⍨")  # Data Stream: Tráfico normal de red
-            self.status_label.config(text="Network data stream active.", fg=TEXT_COLOR)
-        
-        # Añade los nuevos glifos a la cola
+            new_glyphs.append("⍨")
+
         self.glyph_stream.extend(new_glyphs)
-        
-        # Mantiene la cola de glifos a un tamaño manejable
         if len(self.glyph_stream) > self.max_glyphs:
             self.glyph_stream = self.glyph_stream[-self.max_glyphs:]
 
-        # Vuelve a llamar a esta función cada segundo
-        self.after(1000, self.monitor_system)
+        # --- Actualización del panel de texto ---
+        status_text = f"  [ESTADO]        : {'▓' if self.breach_active else 'Δ'} CORE OPERATIVO\n"
+        status_text += f"  [PROCESADOR]    : {cpu_percent}% DE CAPACIDAD\n"
+        status_text += f"  [MEMORIA RAM]   : {mem_info.percent}% ({mem_info.used / (1024**3):.2f}/{mem_info.total / (1024**3):.2f} GB)\n"
+        status_text += f"  [ALMACENAMIENTO]: {disk_info.percent}% ({disk_info.used / (1024**3):.2f}/{disk_info.total / (1024**3):.2f} GB)\n"
+        status_text += f"  [TRÁFICO RED]   : ↓ {net_recv / 1024:.2f} KB/s  ↑ {net_sent / 1024:.2f} KB/s\n"
+        
+        if self.breach_active:
+            status_text += "\n< !!! ADVERTENCIA DE BRECHA DE SEGURIDAD DETECTADA !!! >"
+        
+        self.data_monitor.config(state="normal")
+        self.data_monitor.delete("1.0", tk.END)
+        self.data_monitor.insert(tk.END, status_text)
+        self.data_monitor.config(state="disabled")
+
+        self.after(1000, self.update_system_data)
+
+    def trigger_breach(self):
+        """Simula una brecha de seguridad con un cambio en el monitor."""
+        if not self.breach_active:
+            self.breach_active = True
+            self.breach_button.config(state="disabled", text="[ INTRUSIÓN EN PROGRESO... ]", foreground=ACCENT_COLOR)
+            self.after(10000, self.end_breach)
+    
+    def end_breach(self):
+        """Finaliza la simulación de brecha de seguridad."""
+        self.breach_active = False
+        self.breach_button.config(state="normal", text="[ PROTOCOLO DE INTRUSIÓN ]", foreground=TEXT_COLOR)
 
     def animate_canvas(self):
         """
@@ -152,7 +162,6 @@ class SynthexMonitor(tk.Tk):
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
 
-        # Si el canvas aún no está renderizado, espera un momento
         if canvas_width < 10 or canvas_height < 10:
             self.after(50, self.animate_canvas)
             return
@@ -163,7 +172,8 @@ class SynthexMonitor(tk.Tk):
         y_pos = canvas_height - 20
         
         for glyph in reversed(self.glyph_stream):
-            self.draw_glyph_shape(glyph, x_pos, y_pos, glyph_size, TEXT_COLOR)
+            color = ACCENT_COLOR if self.breach_active else TEXT_COLOR
+            self.draw_glyph_shape(glyph, x_pos, y_pos, glyph_size, color)
             y_pos -= spacing
             if y_pos < 20:
                 y_pos = canvas_height - 20
@@ -171,10 +181,10 @@ class SynthexMonitor(tk.Tk):
                 if x_pos > canvas_width - 20:
                     x_pos = 20
 
-        # Anima los glifos con un efecto de parpadeo sutil
+        # Efecto de parpadeo sutil
         for item in self.canvas.find_all():
             if random.random() > 0.9:
-                self.canvas.itemconfig(item, fill=ACCENT_COLOR)
+                self.canvas.itemconfig(item, fill=ACCENT_COLOR if self.breach_active else TEXT_COLOR)
             else:
                 self.canvas.itemconfig(item, fill=TEXT_COLOR)
         
@@ -182,56 +192,46 @@ class SynthexMonitor(tk.Tk):
 
     # --- Funciones de dibujo de glifos ---
     def _draw_square_block(self, x, y, size, color):
-        """Dibuja el glifo '░', un bloque cuadrado con líneas que se cruzan."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y - size, x + size, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1)
     
     def _draw_omega(self, x, y, size, color):
-        """Dibuja el glifo 'Ω', una omega elaborada."""
         points = [x - size, y + size, x - size / 2, y - size, x + size / 2, y - size, x + size, y + size]
         self.canvas.create_line(points, fill=color, width=1)
         self.canvas.create_arc(x - size, y - size / 2, x + size, y + size / 2, start=180, extent=180, outline=color, style=tk.ARC, width=1)
     
     def _draw_dotted_block(self, x, y, size, color):
-        """Dibuja el glifo '▒', un bloque con un círculo central."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color)
     
     def _draw_solid_block(self, x, y, size, color):
-        """Dibuja el glifo '▓', un bloque sólido."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, fill=color, outline=color)
     
     def _draw_circle_plus(self, x, y, size, color):
-        """Dibuja el glifo '⊕', un círculo con una cruz en el centro."""
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
     
     def _draw_psi(self, x, y, size, color):
-        """Dibuja el glifo 'Ψ', una psi con barras horizontales."""
         self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y - size, x + size, y - size, fill=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
     
     def _draw_phi(self, x, y, size, color):
-        """Dibuja el glifo 'Φ', un círculo con una línea horizontal."""
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
     
     def _draw_section(self, x, y, size, color):
-        """Dibuja el glifo '§', un símbolo de sección doble."""
         self.canvas.create_arc(x - size, y - size, x, y, start=90, extent=180, style=tk.ARC, outline=color, width=1)
         self.canvas.create_arc(x, y, x + size, y + size, start=270, extent=180, style=tk.ARC, outline=color, width=1)
         self.canvas.create_line(x, y, x, y + size, fill=color, width=1)
         self.canvas.create_line(x, y, x, y - size, fill=color, width=1)
     
     def _draw_triangle(self, x, y, size, color):
-        """Dibuja el glifo 'Δ', un triángulo isósceles."""
         self.canvas.create_polygon(x, y - size, x - size, y + size, x + size, y + size, outline=color, fill="")
     
     def _draw_left_right_arrow(self, x, y, size, color):
-        """Dibuja el glifo '↔', una flecha bidireccional."""
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
         self.canvas.create_line(x - size, y, x - size / 2, y - size / 2, fill=color, width=1)
         self.canvas.create_line(x - size, y, x - size / 2, y + size / 2, fill=color, width=1)
@@ -239,14 +239,12 @@ class SynthexMonitor(tk.Tk):
         self.canvas.create_line(x + size, y, x + size / 2, y + size / 2, fill=color, width=1)
     
     def _draw_sigma(self, x, y, size, color):
-        """Dibuja el glifo 'Σ', una sigma elaborada."""
         self.canvas.create_line(x + size, y - size, x - size, y - size, fill=color, width=1)
         self.canvas.create_line(x + size, y + size, x - size, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y - size, x, y, fill=color, width=1)
         self.canvas.create_line(x, y, x - size, y + size, fill=color, width=1)
     
     def _draw_star(self, x, y, size, color):
-        """Dibuja el glifo '⍟', una estrella de cinco puntas."""
         points = []
         for i in range(5):
             angle = math.pi / 2 + i * (2 * math.pi / 5)
@@ -256,77 +254,63 @@ class SynthexMonitor(tk.Tk):
         self.canvas.create_polygon(points, outline=color, fill="", width=1)
     
     def _draw_rectangle(self, x, y, size, color):
-        """Dibuja el glifo '⎚', un simple rectángulo."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
     
     def _draw_double_tilde(self, x, y, size, color):
-        """Dibuja el glifo '⍬', un par de arcos en forma de tilde."""
         self.canvas.create_arc(x - size, y - size, x + size, y, start=180, extent=180, style=tk.ARC, outline=color, width=1)
         self.canvas.create_arc(x - size, y, x + size, y + size, start=0, extent=180, style=tk.ARC, outline=color, width=1)
     
     def _draw_circle_slash(self, x, y, size, color):
-        """Dibuja el glifo '⊘', un círculo con una línea diagonal."""
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1)
     
     def _draw_house(self, x, y, size, color):
-        """Dibuja el glifo '⌂', un contorno de casa con tejado."""
         self.canvas.create_polygon(x, y - size, x - size, y, x + size, y, outline=color, fill="")
         self.canvas.create_rectangle(x - size, y, x + size, y + size, outline=color)
         
     def _draw_infinity(self, x, y, size, color):
-        """Dibuja el glifo '∞', un símbolo de infinito."""
         self.canvas.create_oval(x - size, y - size / 2, x, y + size / 2, outline=color, width=1)
         self.canvas.create_oval(x, y - size / 2, x + size, y + size / 2, outline=color, width=1)
     
     def _draw_circle_dot(self, x, y, size, color):
-        """Dibuja el glifo '⊚', un círculo con un punto central."""
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color)
     
     def _draw_protocol(self, x, y, size, color):
-        """Dibuja el glifo '⍱', un símbolo de protocolo con barras horizontales y verticales."""
         self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y - size, x + size, y - size, fill=color, width=1)
         self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
     
     def _draw_firewall(self, x, y, size, color):
-        """Dibuja el glifo '◫', un bloque con barreras en los lados."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y, x - size / 2, y - size, fill=color, width=1)
         self.canvas.create_line(x + size, y, x + size / 2, y - size, fill=color, width=1)
     
     def _draw_down_arrow(self, x, y, size, color):
-        """Dibuja el glifo '⍒', una flecha hacia abajo."""
         self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
         self.canvas.create_line(x - size / 2, y + size / 2, x, y + size, fill=color, width=1)
         self.canvas.create_line(x + size / 2, y + size / 2, x, y + size, fill=color, width=1)
     
     def _draw_up_arrow(self, x, y, size, color):
-        """Dibuja el glifo '⍐', una flecha hacia arriba."""
         self.canvas.create_line(x, y + size, x, y - size, fill=color, width=1)
         self.canvas.create_line(x - size / 2, y - size / 2, x, y - size, fill=color, width=1)
         self.canvas.create_line(x + size / 2, y - size / 2, x, y - size, fill=color, width=1)
     
     def _draw_construct(self, x, y, size, color):
-        """Dibuja el glifo '⍦', un símbolo de construcción."""
         self.canvas.create_oval(x - size / 2, y - size, x + size / 2, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
     
     def _draw_question_box(self, x, y, size, color):
-        """Dibuja el glifo '⍰', una caja con un signo de interrogación."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color)
         self.canvas.create_arc(x - size / 2, y - size, x + size / 2, y, start=0, extent=180, style=tk.ARC, outline=color, width=1)
         self.canvas.create_line(x, y, x, y + size / 2, fill=color, width=1)
     
     def _draw_sentience(self, x, y, size, color):
-        """Dibuja el glifo '⍲', un símbolo de sentiencia en forma de pico."""
         self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
         self.canvas.create_line(x - size / 2, y + size, x, y - size, fill=color, width=1)
         self.canvas.create_line(x + size / 2, y + size, x, y - size, fill=color, width=1)
     
     def _draw_anomaly(self, x, y, size, color):
-        """Dibuja el glifo '⌖', un símbolo de anomalía con múltiples líneas diagonales."""
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y - size, x + size, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1)
@@ -334,73 +318,60 @@ class SynthexMonitor(tk.Tk):
         self.canvas.create_line(x + size / 2, y - size, x - size / 2, y + size, fill=color, width=1)
     
     def _draw_data_stream(self, x, y, size, color):
-        """Dibuja el glifo '⍨', un flujo de datos."""
         self.canvas.create_oval(x - size, y - size / 2, x, y + size / 2, outline=color)
         self.canvas.create_oval(x, y - size / 2, x + size, y + size / 2, outline=color)
         self.canvas.create_line(x, y - size / 2, x, y + size / 2, fill=color)
     
     def _draw_probe(self, x, y, size, color):
-        """Dibuja el glifo '⍴', una sonda."""
         self.canvas.create_line(x, y - size, x, y + size, fill=color)
         self.canvas.create_oval(x - size, y, x, y + size, outline=color)
     
     def _draw_divert(self, x, y, size, color):
-        """Dibuja el glifo '⍬⍬', dos tildes dobles que simbolizan desviar."""
         self.canvas.create_arc(x - size, y - size, x + size / 2, y, start=180, extent=180, style=tk.ARC, outline=color, width=1)
         self.canvas.create_arc(x - size / 2, y, x + size, y + size, start=0, extent=180, style=tk.ARC, outline=color, width=1)
     
     def _draw_corrupt(self, x, y, size, color):
-        """Dibuja el glifo '⍟§', una combinación de estrella y sección para representar corrupción."""
         self._draw_star(x - size / 2, y, size / 2, color)
         self.canvas.create_arc(x + size / 2, y - size / 2, x + size, y + size / 2, start=0, extent=180, style=tk.ARC, outline=color, width=1)
     
     def _draw_nullify(self, x, y, size, color):
-        """Dibuja el glifo 'ΨΦ', una combinación de Psi y Phi para representar anulación."""
         self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
     
     def _draw_access(self, x, y, size, color):
-        """Dibuja el glifo '⎇', un símbolo de acceso."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
         self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
     
     def _draw_security(self, x, y, size, color):
-        """Dibuja el glifo '⌠', un símbolo de seguridad."""
         self.canvas.create_line(x + size, y - size, x - size, y - size, fill=color, width=1)
         self.canvas.create_line(x - size, y - size, x - size, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
     
     def _draw_core(self, x, y, size, color):
-        """Dibuja el glifo '◉', un círculo central con un punto."""
         self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color)
     
     def _draw_digital(self, x, y, size, color):
-        """Dibuja el glifo '⎚⎚', dos rectángulos que se superponen."""
         self.canvas.create_rectangle(x - size, y - size, x + size / 2, y + size, outline=color, width=1)
         self.canvas.create_rectangle(x - size / 2, y - size, x + size, y + size, outline=color, width=1)
     
     def _draw_reality(self, x, y, size, color):
-        """Dibuja el glifo '∞∞', dos símbolos de infinito."""
         self._draw_infinity(x - size / 2, y, size, color)
         self._draw_infinity(x + size / 2, y, size, color)
     
     def _draw_interface(self, x, y, size, color):
-        """Dibuja el glifo '⌤', un símbolo de interfaz."""
         self.canvas.create_line(x - size, y - size, x - size, y + size, fill=color, width=1)
         self.canvas.create_line(x + size, y - size, x + size, y + size, fill=color, width=1)
         self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
     
     def _draw_threat(self, x, y, size, color):
-        """Dibuja el glifo '⍞', un símbolo de amenaza en forma de triángulo con una base."""
         self.canvas.create_polygon(x, y - size, x - size / 2, y + size / 2, x + size / 2, y + size / 2, outline=color, fill="")
         self.canvas.create_line(x - size / 2, y + size, x + size / 2, y + size, fill=color, width=1)
     
     def _draw_man(self, x, y, size, color):
-        """Dibuja el glifo '⌘' (el símbolo de comando)."""
         self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
         self.canvas.create_arc(x - size, y - size, x, y, start=90, extent=90, style=tk.ARC, outline=color, width=1)
         self.canvas.create_arc(x, y - size, x + size, y, start=0, extent=90, style=tk.ARC, outline=color, width=1)
@@ -454,7 +425,6 @@ class SynthexMonitor(tk.Tk):
             self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color)
             self.canvas.create_text(x, y, text="?", fill=color, font=("Courier", 18, "bold"))
 
-
 if __name__ == "__main__":
-    app = SynthexMonitor()
+    app = SynthexTerminal()
     app.mainloop()
