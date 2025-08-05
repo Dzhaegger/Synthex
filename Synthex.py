@@ -707,3 +707,4 @@ class SynthexTerminal(tk.Tk):
 if __name__ == "__main__":
     app = SynthexTerminal()
     app.mainloop()
+    # --- Configuración del lenguaje Synthex --- V1.2A
