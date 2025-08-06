@@ -51,9 +51,27 @@ GLYPH_SHAPES = {
     "⍎": "backup", "⍏": "restore", "⍑": "mirror", "⍒": "clone", "⍓": "sync"
 }
 
+# --- TEMAS VISUALES ---
+THEMES = {
+    "classic": {"bg": "#000000", "text": "#00FF00", "accent": "#00FFFF"},
+    "ice": {"bg": "#001F3F", "text": "#7FDBFF", "accent": "#007BFF"},
+    "fire": {"bg": "#3D0000", "text": "#FF4136", "accent": "#FF851B"},
+    "matrix": {"bg": "#000000", "text": "#00FF41", "accent": "#00FFFF"},
+    "neon": {"bg": "#191970", "text": "#F0F8FF", "accent": "#FF69B4"}
+}
+
 # Listas para la lógica de animación
 ATTACK_GLYPH_WORDS = ["breach", "corrupt", "virus", "worm", "trojan", "exploit", "botnet", "ransomware", "spyware", "malware", "keylogger", "threat", "anomaly", "chaos"]
 SECURITY_GLYPH_WORDS = ["firewall", "security", "stable", "sandbox", "honeypot", "whitelist", "quarantine", "patch", "backup"]
+
+# --- NUEVA ESTRUCTURA DE CONSTELACIONES ---
+GLYPH_CONSTELLATIONS = {
+    "AI & CONSCIOUSNESS": ["ai", "sentience", "construct", "entity", "ghost", "identity", "memory"],
+    "SECURITY & DEFENSE": ["firewall", "security", "stable", "sandbox", "honeypot", "whitelist", "quarantine", "patch", "backup"],
+    "THREATS & EXPLOITS": ["breach", "corrupt", "virus", "worm", "trojan", "keylogger", "ransomware", "spyware", "malware", "exploit", "threat", "anomaly", "chaos"],
+    "CORE NETWORK CONCEPTS": ["system", "core", "digital", "reality", "interface", "link", "protocol", "data_stream", "probe"],
+    "BASIC OPERATIONS": ["hello", "world", "message", "network", "encrypt", "decrypt", "code"]
+}
 
 class SynthexTerminalEnhanced(tk.Tk):
     def __init__(self):
@@ -71,8 +89,9 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.glyph_tooltips = {}
         
         self.apply_theme()
-        self.setup_ui()
-        self.start_animations()
+        # --- CAMBIO AQUI: Ahora la app empieza con la pantalla de inicio ---
+        self.start_screen()
+        # --- FIN DEL CAMBIO ---
 
     def apply_theme(self):
         theme = THEMES[self.current_theme]
@@ -80,6 +99,39 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.text_color = theme["text"]
         self.accent_color = theme["accent"]
         self.configure(bg=self.bg_color)
+    
+    # --- NUEVA FUNCIÓN: Pantalla de inicio ---
+    def start_screen(self):
+        self.apply_theme()
+        
+        self.start_frame = tk.Frame(self, bg=self.bg_color, padx=50, pady=50)
+        self.start_frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(self.start_frame, text="SYNTHEX NETRUNNER TERMINAL", font=("Courier", 32, "bold"), fg=self.accent_color, bg=self.bg_color).pack(pady=20)
+        tk.Label(self.start_frame, text=">>> SYSTEM PROTOCOL v2.0 READY <<<", font=("Courier", 24), fg=self.text_color, bg=self.bg_color).pack(pady=10)
+        tk.Label(self.start_frame, text="Accessing core infrastructure requires authorization...", font=("Courier", 16), fg=self.text_color, bg=self.bg_color).pack(pady=40)
+
+        # Botones
+        tk.Button(self.start_frame, text="JACK IN (Iniciar Terminal)", font=("Courier", 14, "bold"), 
+                  bg=self.accent_color, fg=self.bg_color, command=self.start_terminal,
+                  activebackground=self.text_color, activeforeground=self.bg_color,
+                  bd=3, relief=tk.RAISED).pack(pady=10, ipadx=20, ipady=10)
+        
+        tk.Button(self.start_frame, text="MANUAL (Ver Guía)", font=("Courier", 14), 
+                  bg=self.text_color, fg=self.bg_color, command=self.show_manual,
+                  activebackground=self.accent_color, activeforeground=self.bg_color,
+                  bd=3, relief=tk.RAISED).pack(pady=10, ipadx=20, ipady=10)
+    
+    def start_terminal(self):
+        """Destruye la pantalla de inicio y crea la terminal"""
+        self.start_frame.destroy()
+        self.setup_ui()
+        self.start_animations()
+        self.write_to_console("=== SYNTHEX TERMINAL v2.0 INITIALIZED ===")
+        self.write_to_console("Type 'help' for available commands")
+        self.write_to_console("Type 'man' for Synthex language manual")
+        self.write_to_console("Type 'test' to visualize glyph constellations")
+    # --- FIN DE LAS NUEVAS FUNCIONES ---
 
     def setup_ui(self):
         # Frame principal
@@ -146,14 +198,15 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.console_input.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
         self.console_input.bind('<Return>', self.process_console_command)
 
-        # Canvas de visualización (derecha)
+            # Canvas de visualización (derecha)
         viz_frame = tk.LabelFrame(middle_frame, text="Network Visualization", 
                                 bg=self.bg_color, fg=self.text_color, font=("Courier", 12))
-        viz_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-
+        viz_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(10, 0))
+        # Ajusta el ancho aquí
         self.canvas = tk.Canvas(viz_frame, bg=self.bg_color, highlightthickness=1, 
-                               highlightbackground=self.text_color)
+                               highlightbackground=self.text_color, width=900)
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
         
         # Bind para tooltips
         self.canvas.bind('<Motion>', self.show_glyph_tooltip)
@@ -172,16 +225,16 @@ class SynthexTerminalEnhanced(tk.Tk):
         
         tk.Button(bottom_frame, text="Emergency Reset", command=self.emergency_reset,
                  bg="#FF4444", fg=self.bg_color, font=("Courier", 10)).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(bottom_frame, text="Exit", command=self.on_close,
+                 bg="#555555", fg=self.bg_color, font=("Courier", 10)).pack(side=tk.RIGHT, padx=5)
 
         # Almacenamiento para glifos y animaciones
         self.glyph_coords = {}
         self.current_glyphs = []
+        # --- NUEVO: diccionario para guardar a qué constelación pertenece cada glifo ---
+        self.glyph_constellation_map = {}
         
-        # Inicializar console
-        self.write_to_console("=== SYNTHEX TERMINAL v2.0 INITIALIZED ===")
-        self.write_to_console("Type 'help' for available commands")
-        self.write_to_console("Type 'man' for Synthex language manual")
-
     def write_to_console(self, text, color=None):
         """Escribe texto en la consola"""
         self.console_output.config(state=tk.NORMAL)
@@ -224,6 +277,9 @@ class SynthexTerminalEnhanced(tk.Tk):
             self.system_scan()
         elif command == "reset":
             self.emergency_reset()
+        elif command == "test":
+            self.visualize_constellations()
+            self.write_to_console("Displaying all Synthex glyphs in constellations...", "#FFFF00")
         elif command.startswith("theme "):
             theme_name = command.split(" ", 1)[1]
             if theme_name in THEMES:
@@ -320,6 +376,7 @@ AVAILABLE COMMANDS:
   scan          - Perform system scan
   reset         - Emergency system reset
   theme <name>  - Change theme (classic, ice, fire, matrix, neon)
+  test          - Display all glyph constellations
   encrypt <text>- Encrypt text to Synthex
   decrypt <code>- Decrypt Synthex code
   
@@ -405,8 +462,10 @@ SYSTEM STATUS REPORT:
         """Cambia el tema de la aplicación"""
         self.current_theme = self.theme_var.get()
         self.apply_theme()
+        # --- CAMBIO AQUI: reconstruye la interfaz al cambiar de tema ---
         self.setup_ui()
         self.write_to_console(f"Theme changed to: {self.current_theme}", "#FFFF00")
+    # --- FIN DEL CAMBIO ---
 
     def clear_console(self):
         """Limpia la consola"""
@@ -414,6 +473,11 @@ SYSTEM STATUS REPORT:
         self.console_output.delete(1.0, tk.END)
         self.console_output.config(state=tk.DISABLED)
         self.write_to_console("Console cleared.")
+    
+    def on_close(self):
+        """Maneja el cierre de la ventana"""
+        if messagebox.askyesno("Exit", "Are you sure you want to exit?"):
+            self.destroy()
 
     def show_blackwall(self):
         """Dibuja el efecto del Muro Negro."""
@@ -449,6 +513,7 @@ SYSTEM STATUS REPORT:
         self.canvas.delete("all")
         self.glyph_coords.clear()
         self.glyph_tooltips.clear()
+        self.glyph_constellation_map.clear()
         self.current_glyphs = glyphs
         
         canvas_width = self.canvas.winfo_width()
@@ -493,14 +558,83 @@ SYSTEM STATUS REPORT:
                 self.glyph_tooltips[i] = f"{glyph} - {word}"
 
         self.draw_connections(is_chaotic)
+        
+    def visualize_constellations(self):
+        """Visualiza todos los glifos de Synthex agrupados por constelación."""
+        self.canvas.delete("all")
+        self.glyph_coords.clear()
+        self.glyph_tooltips.clear()
+        self.glyph_constellation_map.clear()
+
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        
+        if canvas_width <= 1 or canvas_height <= 1:
+            self.after(50, self.visualize_constellations)
+            return
+
+        constellation_names = list(GLYPH_CONSTELLATIONS.keys())
+        num_constellations = len(constellation_names)
+        
+        center_x, center_y = canvas_width / 2, canvas_height / 2
+        outer_radius = min(canvas_width, canvas_height) / 2.5
+        
+        # Posiciones de los centros de las constelaciones
+        constellation_positions = {}
+        for i, name in enumerate(constellation_names):
+            angle = i * (2 * math.pi / num_constellations) + math.pi/2 # Empezar arriba
+            x_pos = center_x + outer_radius * math.cos(angle)
+            y_pos = center_y - outer_radius * math.sin(angle)
+            constellation_positions[name] = (x_pos, y_pos)
+
+        # Dibujar cada constelación
+        for const_name, const_words in GLYPH_CONSTELLATIONS.items():
+            cx, cy = constellation_positions[const_name]
+            const_glyphs = [SYNTHEX_DICTIONARY.get(word, UNKNOWN_GLYPH) for word in const_words]
+            num_glyphs = len(const_glyphs)
+            inner_radius = 40 + num_glyphs * 2 # Radio dinámico
+            
+            glyph_indices = []
+            
+            # Dibujar glifos de la constelación
+            for i, glyph in enumerate(const_glyphs):
+                angle = i * (2 * math.pi / num_glyphs)
+                x = cx + inner_radius * math.cos(angle)
+                y = cy + inner_radius * math.sin(angle)
+                
+                color = self.get_glyph_color(glyph)
+                tag = f"glyph_{len(self.glyph_coords)}"
+                self.draw_glyph_shape(glyph, x, y, 15, color, tag)
+                
+                # Almacenar información del glifo
+                index = len(self.glyph_coords)
+                self.glyph_coords[index] = (x, y)
+                self.glyph_tooltips[index] = f"{glyph} - {REV_SYNTHEX_DICTIONARY.get(glyph, 'unknown')}"
+                self.glyph_constellation_map[index] = const_name
+                glyph_indices.append(index)
+            
+            # Dibujar conexiones dentro de la constelación
+            for i in range(len(glyph_indices)):
+                j = (i + 1) % len(glyph_indices)
+                idx1, idx2 = glyph_indices[i], glyph_indices[j]
+                x1, y1 = self.glyph_coords[idx1]
+                x2, y2 = self.glyph_coords[idx2]
+                self.canvas.create_line(x1, y1, x2, y2, fill=self.text_color, width=1, dash=(3, 2))
+                
+            # Dibujar el nombre de la constelación en el centro
+            self.canvas.create_text(cx, cy, text=const_name, fill=self.accent_color,
+                                    font=("Courier", 10, "bold"), justify=tk.CENTER)
+            
+        self.current_glyphs = [glyph for words in GLYPH_CONSTELLATIONS.values() for word in words]
+        self.start_animations()
 
     def get_glyph_color(self, glyph):
         """Determina el color del glifo basado en su tipo"""
         word = REV_SYNTHEX_DICTIONARY.get(glyph, "")
         
-        if word in ["breach", "corrupt", "virus", "worm", "trojan", "threat", "error", "spyware", "malware", "keylogger", "exploit"]:
+        if word in ATTACK_GLYPH_WORDS:
             return "#FF0000"  # Rojo para amenazas
-        elif word in ["firewall", "security", "stable", "access", "backup","trace", "honeypot", "sandbox", "quarantine", "whitelist", "patch"]:
+        elif word in SECURITY_GLYPH_WORDS:
             return "#00FF00"  # Verde para seguridad
         elif word in ["ai", "sentience", "construct", "entity", "ghost", "identity", "memory"]:
             return "#00FFFF"  # Cyan para IA
@@ -541,17 +675,22 @@ SYSTEM STATUS REPORT:
         """Maneja clicks en glifos"""
         click_x, click_y = event.x, event.y
         min_distance = float('inf')
-        closest_glyph = None
+        closest_glyph_index = None
         
-        for i, (x, y) in self.glyph_coords.items():
+        # Iterar a través de los glifos dibujados
+        for index, (x, y) in self.glyph_coords.items():
             distance = math.sqrt((click_x - x)**2 + (click_y - y)**2)
-            if distance < min_distance and distance < 30:
+            if distance < min_distance and distance < 20: # Radio de clic
                 min_distance = distance
-                closest_glyph = i
+                closest_glyph_index = index
         
-        if closest_glyph is not None:
-            tooltip_text = self.glyph_tooltips.get(closest_glyph, "Unknown glyph")
-            self.write_to_console(f"Glyph selected: {tooltip_text}", "#FFFF00")
+        if closest_glyph_index is not None:
+            # Obtener el tooltip del glifo
+            tooltip_text = self.glyph_tooltips.get(closest_glyph_index, "Unknown glyph")
+            # Obtener el nombre de la constelación si existe
+            constellation_name = self.glyph_constellation_map.get(closest_glyph_index, "No Constellation")
+            
+            self.write_to_console(f"Glyph selected: {tooltip_text} (Constellation: {constellation_name})", "#FFFF00")
 
     def start_animations(self):
         """Inicia las animaciones del canvas"""
@@ -587,15 +726,14 @@ SYSTEM STATUS REPORT:
         # Seleccionar un glifo de origen
         source_index = random.choice(list(self.glyph_coords.keys()))
         start_x, start_y = self.glyph_coords[source_index]
-        source_glyph = self.current_glyphs[source_index]
-        source_word = REV_SYNTHEX_DICTIONARY.get(source_glyph, "")
+        source_word = REV_SYNTHEX_DICTIONARY.get(self.current_glyphs[source_index], "")
         
         target_index = None
 
         if source_word in ATTACK_GLYPH_WORDS:
             # Si el origen es un ataque, buscar un objetivo de seguridad
-            security_indices = [i for i, glyph in enumerate(self.current_glyphs) 
-                                if REV_SYNTHEX_DICTIONARY.get(glyph, "") in SECURITY_GLYPH_WORDS]
+            security_indices = [i for i, word in enumerate(self.current_glyphs) 
+                                if word in SECURITY_GLYPH_WORDS]
             if security_indices:
                 target_index = random.choice(security_indices)
         
@@ -607,7 +745,7 @@ SYSTEM STATUS REPORT:
 
         if target_index is not None:
             end_x, end_y = self.glyph_coords[target_index]
-            data_color = self.get_glyph_color(source_glyph)
+            data_color = self.get_glyph_color(self.current_glyphs[source_index])
 
             point = self.canvas.create_oval(start_x-2, start_y-2, start_x+2, start_y+2,
                                             fill=data_color, outline="", tags="dataflow")
@@ -762,6 +900,7 @@ status      - Show system diagnostics
 scan        - Perform security scan
 reset       - Emergency system restoration
 theme <n>   - Change interface theme
+test        - Show all glyph constellations
 
 SYNTHEX OPERATIONS:
 encrypt <text>    - Convert to Synthex glyphs
@@ -816,427 +955,427 @@ END TRANSMISSION
         manual_text.insert(tk.END, manual_content)
         manual_text.config(state=tk.DISABLED)
 
-    def draw_glyph_shape(self, glyph, x, y, size, color):
+    def draw_glyph_shape(self, glyph, x, y, size, color, tag=""):
         """Dibuja la forma correspondiente a un glifo"""
         shape_name = GLYPH_SHAPES.get(glyph, "unknown")
         
-        if shape_name == "square_block": self._draw_square_block(x, y, size, color)
-        elif shape_name == "omega": self._draw_omega(x, y, size, color)
-        elif shape_name == "dotted_block": self._draw_dotted_block(x, y, size, color)
-        elif shape_name == "solid_block": self._draw_solid_block(x, y, size, color)
-        elif shape_name == "circle_plus": self._draw_circle_plus(x, y, size, color)
-        elif shape_name == "psi": self._draw_psi(x, y, size, color)
-        elif shape_name == "phi": self._draw_phi(x, y, size, color)
-        elif shape_name == "section": self._draw_section(x, y, size, color)
-        elif shape_name == "triangle": self._draw_triangle(x, y, size, color)
-        elif shape_name == "left_right_arrow": self._draw_left_right_arrow(x, y, size, color)
-        elif shape_name == "sigma": self._draw_sigma(x, y, size, color)
-        elif shape_name == "star": self._draw_star(x, y, size, color)
-        elif shape_name == "rectangle": self._draw_rectangle(x, y, size, color)
-        elif shape_name == "double_tilde": self._draw_double_tilde(x, y, size, color)
-        elif shape_name == "circle_slash": self._draw_circle_slash(x, y, size, color)
-        elif shape_name == "house": self._draw_house(x, y, size, color)
-        elif shape_name == "infinity": self._draw_infinity(x, y, size, color)
-        elif shape_name == "circle_dot": self._draw_circle_dot(x, y, size, color)
-        elif shape_name == "protocol": self._draw_protocol(x, y, size, color)
-        elif shape_name == "firewall": self._draw_firewall(x, y, size, color)
-        elif shape_name == "down_arrow": self._draw_down_arrow(x, y, size, color)
-        elif shape_name == "up_arrow": self._draw_up_arrow(x, y, size, color)
-        elif shape_name == "construct": self._draw_construct(x, y, size, color)
-        elif shape_name == "question_box": self._draw_question_box(x, y, size, color)
-        elif shape_name == "sentience": self._draw_sentience(x, y, size, color)
-        elif shape_name == "anomaly": self._draw_anomaly(x, y, size, color)
-        elif shape_name == "data_stream": self._draw_data_stream(x, y, size, color)
-        elif shape_name == "probe": self._draw_probe(x, y, size, color)
-        elif shape_name == "divert": self._draw_divert(x, y, size, color)
-        elif shape_name == "corrupt": self._draw_corrupt(x, y, size, color)
-        elif shape_name == "nullify": self._draw_nullify(x, y, size, color)
-        elif shape_name == "access": self._draw_access(x, y, size, color)
-        elif shape_name == "security": self._draw_security(x, y, size, color)
-        elif shape_name == "core": self._draw_core(x, y, size, color)
-        elif shape_name == "digital": self._draw_digital(x, y, size, color)
-        elif shape_name == "reality": self._draw_reality(x, y, size, color)
-        elif shape_name == "interface": self._draw_interface(x, y, size, color)
-        elif shape_name == "threat": self._draw_threat(x, y, size, color)
-        elif shape_name == "man": self._draw_man(x, y, size, color)
+        if shape_name == "square_block": self._draw_square_block(x, y, size, color, tag)
+        elif shape_name == "omega": self._draw_omega(x, y, size, color, tag)
+        elif shape_name == "dotted_block": self._draw_dotted_block(x, y, size, color, tag)
+        elif shape_name == "solid_block": self._draw_solid_block(x, y, size, color, tag)
+        elif shape_name == "circle_plus": self._draw_circle_plus(x, y, size, color, tag)
+        elif shape_name == "psi": self._draw_psi(x, y, size, color, tag)
+        elif shape_name == "phi": self._draw_phi(x, y, size, color, tag)
+        elif shape_name == "section": self._draw_section(x, y, size, color, tag)
+        elif shape_name == "triangle": self._draw_triangle(x, y, size, color, tag)
+        elif shape_name == "left_right_arrow": self._draw_left_right_arrow(x, y, size, color, tag)
+        elif shape_name == "sigma": self._draw_sigma(x, y, size, color, tag)
+        elif shape_name == "star": self._draw_star(x, y, size, color, tag)
+        elif shape_name == "rectangle": self._draw_rectangle(x, y, size, color, tag)
+        elif shape_name == "double_tilde": self._draw_double_tilde(x, y, size, color, tag)
+        elif shape_name == "circle_slash": self._draw_circle_slash(x, y, size, color, tag)
+        elif shape_name == "house": self._draw_house(x, y, size, color, tag)
+        elif shape_name == "infinity": self._draw_infinity(x, y, size, color, tag)
+        elif shape_name == "circle_dot": self._draw_circle_dot(x, y, size, color, tag)
+        elif shape_name == "protocol": self._draw_protocol(x, y, size, color, tag)
+        elif shape_name == "firewall": self._draw_firewall(x, y, size, color, tag)
+        elif shape_name == "down_arrow": self._draw_down_arrow(x, y, size, color, tag)
+        elif shape_name == "up_arrow": self._draw_up_arrow(x, y, size, color, tag)
+        elif shape_name == "construct": self._draw_construct(x, y, size, color, tag)
+        elif shape_name == "question_box": self._draw_question_box(x, y, size, color, tag)
+        elif shape_name == "sentience": self._draw_sentience(x, y, size, color, tag)
+        elif shape_name == "anomaly": self._draw_anomaly(x, y, size, color, tag)
+        elif shape_name == "data_stream": self._draw_data_stream(x, y, size, color, tag)
+        elif shape_name == "probe": self._draw_probe(x, y, size, color, tag)
+        elif shape_name == "divert": self._draw_divert(x, y, size, color, tag)
+        elif shape_name == "corrupt": self._draw_corrupt(x, y, size, color, tag)
+        elif shape_name == "nullify": self._draw_nullify(x, y, size, color, tag)
+        elif shape_name == "access": self._draw_access(x, y, size, color, tag)
+        elif shape_name == "security": self._draw_security(x, y, size, color, tag)
+        elif shape_name == "core": self._draw_core(x, y, size, color, tag)
+        elif shape_name == "digital": self._draw_digital(x, y, size, color, tag)
+        elif shape_name == "reality": self._draw_reality(x, y, size, color, tag)
+        elif shape_name == "interface": self._draw_interface(x, y, size, color, tag)
+        elif shape_name == "threat": self._draw_threat(x, y, size, color, tag)
+        elif shape_name == "man": self._draw_man(x, y, size, color, tag)
         
-        elif shape_name == "keyboard": self._draw_keyboard(x, y, size, color)
-        elif shape_name == "admin_key": self._draw_admin_key(x, y, size, color)
-        elif shape_name == "backdoor": self._draw_backdoor(x, y, size, color)
-        elif shape_name == "botnet": self._draw_botnet(x, y, size, color)
-        elif shape_name == "virus": self._draw_virus(x, y, size, color)
-        elif shape_name == "worm": self._draw_worm(x, y, size, color)
-        elif shape_name == "trojan": self._draw_trojan(x, y, size, color)
-        elif shape_name == "keylogger": self._draw_keylogger(x, y, size, color)
-        elif shape_name == "ransomware": self._draw_ransomware(x, y, size, color)
-        elif shape_name == "spyware": self._draw_spyware(x, y, size, color)
-        elif shape_name == "malware": self._draw_malware(x, y, size, color)
-        elif shape_name == "honeypot": self._draw_honeypot(x, y, size, color)
-        elif shape_name == "sandbox": self._draw_sandbox(x, y, size, color)
-        elif shape_name == "quarantine": self._draw_quarantine(x, y, size, color)
-        elif shape_name == "whitelist": self._draw_whitelist(x, y, size, color)
-        elif shape_name == "blacklist": self._draw_blacklist(x, y, size, color)
-        elif shape_name == "exploit": self._draw_exploit(x, y, size, color)
-        elif shape_name == "vulnerability": self._draw_vulnerability(x, y, size, color)
-        elif shape_name == "patch": self._draw_patch(x, y, size, color)
-        elif shape_name == "update": self._draw_update(x, y, size, color)
-        elif shape_name == "backup": self._draw_backup(x, y, size, color)
-        elif shape_name == "restore": self._draw_restore(x, y, size, color)
-        elif shape_name == "mirror": self._draw_mirror(x, y, size, color)
-        elif shape_name == "clone": self._draw_clone(x, y, size, color)
-        elif shape_name == "sync": self._draw_sync(x, y, size, color)
+        elif shape_name == "keyboard": self._draw_keyboard(x, y, size, color, tag)
+        elif shape_name == "admin_key": self._draw_admin_key(x, y, size, color, tag)
+        elif shape_name == "backdoor": self._draw_backdoor(x, y, size, color, tag)
+        elif shape_name == "botnet": self._draw_botnet(x, y, size, color, tag)
+        elif shape_name == "virus": self._draw_virus(x, y, size, color, tag)
+        elif shape_name == "worm": self._draw_worm(x, y, size, color, tag)
+        elif shape_name == "trojan": self._draw_trojan(x, y, size, color, tag)
+        elif shape_name == "keylogger": self._draw_keylogger(x, y, size, color, tag)
+        elif shape_name == "ransomware": self._draw_ransomware(x, y, size, color, tag)
+        elif shape_name == "spyware": self._draw_spyware(x, y, size, color, tag)
+        elif shape_name == "malware": self._draw_malware(x, y, size, color, tag)
+        elif shape_name == "honeypot": self._draw_honeypot(x, y, size, color, tag)
+        elif shape_name == "sandbox": self._draw_sandbox(x, y, size, color, tag)
+        elif shape_name == "quarantine": self._draw_quarantine(x, y, size, color, tag)
+        elif shape_name == "whitelist": self._draw_whitelist(x, y, size, color, tag)
+        elif shape_name == "blacklist": self._draw_blacklist(x, y, size, color, tag)
+        elif shape_name == "exploit": self._draw_exploit(x, y, size, color, tag)
+        elif shape_name == "vulnerability": self._draw_vulnerability(x, y, size, color, tag)
+        elif shape_name == "patch": self._draw_patch(x, y, size, color, tag)
+        elif shape_name == "update": self._draw_update(x, y, size, color, tag)
+        elif shape_name == "backup": self._draw_backup(x, y, size, color, tag)
+        elif shape_name == "restore": self._draw_restore(x, y, size, color, tag)
+        elif shape_name == "mirror": self._draw_mirror(x, y, size, color, tag)
+        elif shape_name == "clone": self._draw_clone(x, y, size, color, tag)
+        elif shape_name == "sync": self._draw_sync(x, y, size, color, tag)
         else:
-            self.canvas.create_rectangle(x-size, y-size, x+size, y+size, outline=color)
-            self.canvas.create_text(x, y, text="?", fill=color, font=("Courier", 18, "bold"))
+            self.canvas.create_rectangle(x-size, y-size, x+size, y+size, outline=color, tags=tag)
+            self.canvas.create_text(x, y, text="?", fill=color, font=("Courier", 18, "bold"), tags=tag)
 
-    def _draw_square_block(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y - size, x + size, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1)
+    def _draw_square_block(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y - size, x + size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1, tags=tag)
 
-    def _draw_omega(self, x, y, size, color):
+    def _draw_omega(self, x, y, size, color, tag):
         points = [x - size, y + size, x - size / 2, y - size, x + size / 2, y - size, x + size, y + size]
-        self.canvas.create_line(points, fill=color, width=1)
-        self.canvas.create_arc(x - size, y - size/2, x + size, y + size/2, start=180, extent=180, outline=color, style=tk.ARC, width=1)
+        self.canvas.create_line(points, fill=color, width=1, tags=tag)
+        self.canvas.create_arc(x - size, y - size/2, x + size, y + size/2, start=180, extent=180, outline=color, style=tk.ARC, width=1, tags=tag)
 
-    def _draw_dotted_block(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color)
+    def _draw_dotted_block(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color, tags=tag)
     
-    def _draw_solid_block(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, fill=color, outline=color)
+    def _draw_solid_block(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, fill=color, outline=color, tags=tag)
     
-    def _draw_circle_plus(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
+    def _draw_circle_plus(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
 
-    def _draw_psi(self, x, y, size, color):
-        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y - size, x + size, y - size, fill=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
+    def _draw_psi(self, x, y, size, color, tag):
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y - size, x + size, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
         
-    def _draw_phi(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
+    def _draw_phi(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
 
-    def _draw_section(self, x, y, size, color):
-        self.canvas.create_arc(x - size, y - size, x, y, start=90, extent=180, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_arc(x, y, x + size, y + size, start=270, extent=180, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_line(x, y, x, y+size, fill=color, width=1)
-        self.canvas.create_line(x, y, x, y-size, fill=color, width=1)
+    def _draw_section(self, x, y, size, color, tag):
+        self.canvas.create_arc(x - size, y - size, x, y, start=90, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x, y, x + size, y + size, start=270, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x, y, x, y+size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x, y, x, y-size, fill=color, width=1, tags=tag)
 
-    def _draw_triangle(self, x, y, size, color):
-        self.canvas.create_polygon(x, y - size, x - size, y + size, x + size, y + size, outline=color, fill="")
+    def _draw_triangle(self, x, y, size, color, tag):
+        self.canvas.create_polygon(x, y - size, x - size, y + size, x + size, y + size, outline=color, fill="", tags=tag)
 
-    def _draw_left_right_arrow(self, x, y, size, color):
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
-        self.canvas.create_line(x - size, y, x - size / 2, y - size / 2, fill=color, width=1)
-        self.canvas.create_line(x - size, y, x - size / 2, y + size / 2, fill=color, width=1)
-        self.canvas.create_line(x + size, y, x + size / 2, y - size / 2, fill=color, width=1)
-        self.canvas.create_line(x + size, y, x + size / 2, y + size / 2, fill=color, width=1)
+    def _draw_left_right_arrow(self, x, y, size, color, tag):
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x - size / 2, y - size / 2, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x - size / 2, y + size / 2, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size, y, x + size / 2, y - size / 2, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size, y, x + size / 2, y + size / 2, fill=color, width=1, tags=tag)
 
-    def _draw_sigma(self, x, y, size, color):
-        self.canvas.create_line(x + size, y - size, x - size, y - size, fill=color, width=1)
-        self.canvas.create_line(x + size, y + size, x - size, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y - size, x, y, fill=color, width=1)
-        self.canvas.create_line(x, y, x - size, y + size, fill=color, width=1)
+    def _draw_sigma(self, x, y, size, color, tag):
+        self.canvas.create_line(x + size, y - size, x - size, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size, y + size, x - size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y - size, x, y, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x, y, x - size, y + size, fill=color, width=1, tags=tag)
 
-    def _draw_star(self, x, y, size, color):
+    def _draw_star(self, x, y, size, color, tag):
         points = []
         for i in range(5):
             angle = math.pi/2 + i * (2*math.pi / 5)
             x_point = x + size * math.cos(angle)
             y_point = y - size * math.sin(angle)
             points.append((x_point, y_point))
-        self.canvas.create_polygon(points, outline=color, fill="", width=1)
+        self.canvas.create_polygon(points, outline=color, fill="", width=1, tags=tag)
 
-    def _draw_rectangle(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
+    def _draw_rectangle(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
 
-    def _draw_double_tilde(self, x, y, size, color):
-        self.canvas.create_arc(x - size, y - size, x + size, y, start=180, extent=180, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_arc(x - size, y, x + size, y + size, start=0, extent=180, style=tk.ARC, outline=color, width=1)
+    def _draw_double_tilde(self, x, y, size, color, tag):
+        self.canvas.create_arc(x - size, y - size, x + size, y, start=180, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x - size, y, x + size, y + size, start=0, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
 
-    def _draw_circle_slash(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1)
+    def _draw_circle_slash(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1, tags=tag)
 
-    def _draw_house(self, x, y, size, color):
-        self.canvas.create_polygon(x, y - size, x - size, y, x + size, y, outline=color, fill="")
-        self.canvas.create_rectangle(x - size, y, x + size, y + size, outline=color)
+    def _draw_house(self, x, y, size, color, tag):
+        self.canvas.create_polygon(x, y - size, x - size, y, x + size, y, outline=color, fill="", tags=tag)
+        self.canvas.create_rectangle(x - size, y, x + size, y + size, outline=color, tags=tag)
         
-    def _draw_infinity(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size/2, x, y + size/2, outline=color, width=1)
-        self.canvas.create_oval(x, y - size/2, x + size, y + size/2, outline=color, width=1)
+    def _draw_infinity(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size/2, x, y + size/2, outline=color, width=1, tags=tag)
+        self.canvas.create_oval(x, y - size/2, x + size, y + size/2, outline=color, width=1, tags=tag)
 
-    def _draw_circle_dot(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color)
+    def _draw_circle_dot(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color, tags=tag)
 
-    def _draw_protocol(self, x, y, size, color):
-        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y - size, x + size, y - size, fill=color, width=1)
-        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
+    def _draw_protocol(self, x, y, size, color, tag):
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y - size, x + size, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1, tags=tag)
 
-    def _draw_firewall(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y, x - size/2, y - size, fill=color, width=1)
-        self.canvas.create_line(x + size, y, x + size/2, y - size, fill=color, width=1)
+    def _draw_firewall(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x - size/2, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size, y, x + size/2, y - size, fill=color, width=1, tags=tag)
 
-    def _draw_down_arrow(self, x, y, size, color):
-        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size / 2, y + size / 2, x, y + size, fill=color, width=1)
-        self.canvas.create_line(x + size / 2, y + size / 2, x, y + size, fill=color, width=1)
+    def _draw_down_arrow(self, x, y, size, color, tag):
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size / 2, y + size / 2, x, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size / 2, y + size / 2, x, y + size, fill=color, width=1, tags=tag)
     
-    def _draw_up_arrow(self, x, y, size, color):
-        self.canvas.create_line(x, y + size, x, y - size, fill=color, width=1)
-        self.canvas.create_line(x - size / 2, y - size / 2, x, y - size, fill=color, width=1)
-        self.canvas.create_line(x + size / 2, y - size / 2, x, y - size, fill=color, width=1)
+    def _draw_up_arrow(self, x, y, size, color, tag):
+        self.canvas.create_line(x, y + size, x, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size / 2, y - size / 2, x, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size / 2, y - size / 2, x, y - size, fill=color, width=1, tags=tag)
 
-    def _draw_construct(self, x, y, size, color):
-        self.canvas.create_oval(x - size/2, y - size, x + size/2, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
+    def _draw_construct(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size/2, y - size, x + size/2, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
     
-    def _draw_question_box(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color)
-        self.canvas.create_arc(x - size/2, y-size, x + size/2, y, start=0, extent=180, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_line(x, y, x, y + size / 2, fill=color, width=1)
+    def _draw_question_box(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, tags=tag)
+        self.canvas.create_arc(x - size/2, y-size, x + size/2, y, start=0, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x, y, x, y + size / 2, fill=color, width=1, tags=tag)
 
-    def _draw_sentience(self, x, y, size, color):
-        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size/2, y + size, x, y-size, fill=color, width=1)
-        self.canvas.create_line(x + size/2, y + size, x, y-size, fill=color, width=1)
+    def _draw_sentience(self, x, y, size, color, tag):
+        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size/2, y + size, x, y-size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size/2, y + size, x, y-size, fill=color, width=1, tags=tag)
 
-    def _draw_anomaly(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y - size, x + size, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1)
-        self.canvas.create_line(x - size/2, y - size, x + size/2, y + size, fill=color, width=1)
-        self.canvas.create_line(x + size/2, y - size, x - size/2, y + size, fill=color, width=1)
+    def _draw_anomaly(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y - size, x + size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y + size, x + size, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size/2, y - size, x + size/2, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size/2, y - size, x - size/2, y + size, fill=color, width=1, tags=tag)
 
-    def _draw_data_stream(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size/2, x, y + size/2, outline=color)
-        self.canvas.create_oval(x, y - size/2, x + size, y + size/2, outline=color)
-        self.canvas.create_line(x, y - size/2, x, y + size/2, fill=color)
+    def _draw_data_stream(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size/2, x, y + size/2, outline=color, tags=tag)
+        self.canvas.create_oval(x, y - size/2, x + size, y + size/2, outline=color, tags=tag)
+        self.canvas.create_line(x, y - size/2, x, y + size/2, fill=color, tags=tag)
 
-    def _draw_probe(self, x, y, size, color):
-        self.canvas.create_line(x, y - size, x, y + size, fill=color)
-        self.canvas.create_oval(x - size, y, x, y + size, outline=color)
+    def _draw_probe(self, x, y, size, color, tag):
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, tags=tag)
+        self.canvas.create_oval(x - size, y, x, y + size, outline=color, tags=tag)
     
-    def _draw_divert(self, x, y, size, color):
-        self.canvas.create_arc(x - size, y - size, x + size/2, y, start=180, extent=180, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_arc(x - size/2, y, x + size, y + size, start=0, extent=180, style=tk.ARC, outline=color, width=1)
+    def _draw_divert(self, x, y, size, color, tag):
+        self.canvas.create_arc(x - size, y - size, x + size/2, y, start=180, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x - size/2, y, x + size, y + size, start=0, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
 
-    def _draw_corrupt(self, x, y, size, color):
-        self._draw_star(x - size/2, y, size/2, color)
-        self.canvas.create_arc(x + size/2, y - size/2, x + size, y + size/2, start=0, extent=180, style=tk.ARC, outline=color, width=1)
+    def _draw_corrupt(self, x, y, size, color, tag):
+        self._draw_star(x - size/2, y, size/2, color, tag)
+        self.canvas.create_arc(x + size/2, y - size/2, x + size, y + size/2, start=0, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
 
-    def _draw_nullify(self, x, y, size, color):
-        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
+    def _draw_nullify(self, x, y, size, color, tag):
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
     
-    def _draw_access(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
-        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1)
+    def _draw_access(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=1, tags=tag)
 
-    def _draw_security(self, x, y, size, color):
-        self.canvas.create_line(x + size, y - size, x - size, y - size, fill=color, width=1)
-        self.canvas.create_line(x - size, y - size, x - size, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1)
+    def _draw_security(self, x, y, size, color, tag):
+        self.canvas.create_line(x + size, y - size, x - size, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y - size, x - size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y + size, x + size, y + size, fill=color, width=1, tags=tag)
 
-    def _draw_core(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color)
+    def _draw_core(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color, outline=color, tags=tag)
 
-    def _draw_digital(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size/2, y + size, outline=color, width=1)
-        self.canvas.create_rectangle(x - size/2, y - size, x + size, y + size, outline=color, width=1)
+    def _draw_digital(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size/2, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_rectangle(x - size/2, y - size, x + size, y + size, outline=color, width=1, tags=tag)
 
-    def _draw_reality(self, x, y, size, color):
-        self._draw_infinity(x - size/2, y, size, color)
-        self._draw_infinity(x + size/2, y, size, color)
+    def _draw_reality(self, x, y, size, color, tag):
+        self._draw_infinity(x - size/2, y, size, color, tag)
+        self._draw_infinity(x + size/2, y, size, color, tag)
 
-    def _draw_interface(self, x, y, size, color):
-        self.canvas.create_line(x - size, y - size, x - size, y + size, fill=color, width=1)
-        self.canvas.create_line(x + size, y - size, x + size, y + size, fill=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
+    def _draw_interface(self, x, y, size, color, tag):
+        self.canvas.create_line(x - size, y - size, x - size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x + size, y - size, x + size, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
 
-    def _draw_threat(self, x, y, size, color):
-        self.canvas.create_polygon(x, y - size, x - size/2, y + size/2, x + size/2, y + size/2, outline=color, fill="")
-        self.canvas.create_line(x - size/2, y+size, x + size/2, y+size, fill=color, width=1)
+    def _draw_threat(self, x, y, size, color, tag):
+        self.canvas.create_polygon(x, y - size, x - size/2, y + size/2, x + size/2, y + size/2, outline=color, fill="", tags=tag)
+        self.canvas.create_line(x - size/2, y+size, x + size/2, y+size, fill=color, width=1, tags=tag)
     
-    def _draw_man(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_arc(x - size, y-size, x, y, start=90, extent=90, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_arc(x, y-size, x+size, y, start=0, extent=90, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_arc(x-size, y, x, y+size, start=180, extent=90, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_arc(x, y, x+size, y+size, start=270, extent=90, style=tk.ARC, outline=color, width=1)
+    def _draw_man(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x - size, y-size, x, y, start=90, extent=90, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x, y-size, x+size, y, start=0, extent=90, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x-size, y, x, y+size, start=180, extent=90, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x, y, x+size, y+size, start=270, extent=90, style=tk.ARC, outline=color, width=1, tags=tag)
 
-    def _draw_keyboard(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size/2, x + size, y + size/2, outline=color, width=1)
+    def _draw_keyboard(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size/2, x + size, y + size/2, outline=color, width=1, tags=tag)
         for i in range(-2, 3):
             for j in range(-1, 2):
                 self.canvas.create_rectangle(x + i*size/3, y + j*size/4, 
                                            x + (i+0.5)*size/3, y + (j+0.5)*size/4, 
-                                           outline=color, width=1)
+                                           outline=color, width=1, tags=tag)
 
-    def _draw_admin_key(self, x, y, size, color):
-        self.canvas.create_oval(x - size/2, y - size, x + size/2, y - size/2, outline=color, width=1)
-        self.canvas.create_line(x, y - size/2, x, y + size, fill=color, width=1)
-        self.canvas.create_line(x, y, x + size/2, y, fill=color, width=1)
-        self.canvas.create_line(x, y + size/2, x + size/3, y + size/2, fill=color, width=1)
+    def _draw_admin_key(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size/2, y - size, x + size/2, y - size/2, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x, y - size/2, x, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x, y, x + size/2, y, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x, y + size/2, x + size/3, y + size/2, fill=color, width=1, tags=tag)
 
-    def _draw_backdoor(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size/2, y - size, x - size/2, y + size, fill=color, width=1)
-        self.canvas.create_oval(x - size/3, y - size/4, x - size/6, y, fill=color, outline=color)
+    def _draw_backdoor(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size/2, y - size, x - size/2, y + size, fill=color, width=1, tags=tag)
+        self.canvas.create_oval(x - size/3, y - size/4, x - size/6, y, fill=color, outline=color, tags=tag)
 
-    def _draw_botnet(self, x, y, size, color):
+    def _draw_botnet(self, x, y, size, color, tag):
         center_positions = [(x, y-size/2), (x-size/2, y+size/2), (x+size/2, y+size/2)]
         for pos in center_positions:
-            self.canvas.create_oval(pos[0]-3, pos[1]-3, pos[0]+3, pos[1]+3, fill=color, outline=color)
+            self.canvas.create_oval(pos[0]-3, pos[1]-3, pos[0]+3, pos[1]+3, fill=color, outline=color, tags=tag)
         for i in range(len(center_positions)):
             for j in range(i+1, len(center_positions)):
                 self.canvas.create_line(center_positions[i][0], center_positions[i][1],
-                                      center_positions[j][0], center_positions[j][1], fill=color, width=1)
+                                      center_positions[j][0], center_positions[j][1], fill=color, width=1, tags=tag)
 
-    def _draw_virus(self, x, y, size, color):
-        self.canvas.create_oval(x - size/2, y - size/2, x + size/2, y + size/2, outline=color, width=1)
+    def _draw_virus(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size/2, y - size/2, x + size/2, y + size/2, outline=color, width=1, tags=tag)
         for i in range(8):
             angle = i * math.pi / 4
             x1 = x + (size/2) * math.cos(angle)
             y1 = y + (size/2) * math.sin(angle)
             x2 = x + size * math.cos(angle)
             y2 = y + size * math.sin(angle)
-            self.canvas.create_line(x1, y1, x2, y2, fill=color, width=1)
+            self.canvas.create_line(x1, y1, x2, y2, fill=color, width=1, tags=tag)
 
-    def _draw_worm(self, x, y, size, color):
+    def _draw_worm(self, x, y, size, color, tag):
         points = []
         for i in range(10):
             angle = i * math.pi / 5
             wave_x = x + (i - 5) * size / 5
             wave_y = y + size/2 * math.sin(angle * 2)
             points.extend([wave_x, wave_y])
-        self.canvas.create_line(points, fill=color, width=2, smooth=True)
+        self.canvas.create_line(points, fill=color, width=2, smooth=True, tags=tag)
 
-    def _draw_trojan(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y, x + size, y + size, outline=color, width=1)
-        self.canvas.create_polygon(x - size/2, y, x, y - size, x + size/2, y, outline=color, fill="")
-        self.canvas.create_oval(x - size/4, y + size/4, x + size/4, y + 3*size/4, outline=color, width=1)
+    def _draw_trojan(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_polygon(x - size/2, y, x, y - size, x + size/2, y, outline=color, fill="", tags=tag)
+        self.canvas.create_oval(x - size/4, y + size/4, x + size/4, y + 3*size/4, outline=color, width=1, tags=tag)
 
-    def _draw_keylogger(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y, x + size, y + size/2, outline=color, width=1)
-        self.canvas.create_oval(x - size/3, y - size, x + size/3, y - size/3, outline=color, width=1)
-        self.canvas.create_oval(x - size/6, y - 5*size/6, x + size/6, y - 2*size/3, fill=color, outline=color)
+    def _draw_keylogger(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y, x + size, y + size/2, outline=color, width=1, tags=tag)
+        self.canvas.create_oval(x - size/3, y - size, x + size/3, y - size/3, outline=color, width=1, tags=tag)
+        self.canvas.create_oval(x - size/6, y - 5*size/6, x + size/6, y - 2*size/3, fill=color, outline=color, tags=tag)
 
-    def _draw_ransomware(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size/2, y, x + size/2, y + size, outline=color, width=1)
-        self.canvas.create_arc(x - size/2, y - size, x + size/2, y, start=0, extent=180, style=tk.ARC, outline=color, width=1)
-        self.canvas.create_text(x, y + size/2, text="$", fill=color, font=("Courier", int(size), "bold"))
+    def _draw_ransomware(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size/2, y, x + size/2, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_arc(x - size/2, y - size, x + size/2, y, start=0, extent=180, style=tk.ARC, outline=color, width=1, tags=tag)
+        self.canvas.create_text(x, y + size/2, text="$", fill=color, font=("Courier", int(size), "bold"), tags=tag)
 
-    def _draw_spyware(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size/2, x + size, y + size/2, outline=color, width=1)
-        self.canvas.create_oval(x - size/3, y - size/6, x + size/3, y + size/6, fill=color, outline=color)
-        self.canvas.create_line(x, y - size/2, x, y - size, fill=color, width=1)
-        self.canvas.create_line(x - size/4, y - 3*size/4, x + size/4, y - 3*size/4, fill=color, width=1)
+    def _draw_spyware(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size/2, x + size, y + size/2, outline=color, width=1, tags=tag)
+        self.canvas.create_oval(x - size/3, y - size/6, x + size/3, y + size/6, fill=color, outline=color, tags=tag)
+        self.canvas.create_line(x, y - size/2, x, y - size, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size/4, y - 3*size/4, x + size/4, y - 3*size/4, fill=color, width=1, tags=tag)
 
-    def _draw_malware(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y - size/2, x + size, y - size/2, fill=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1)
-        self.canvas.create_line(x - size, y + size/2, x + size, y + size/2, fill=color, width=1)
-        self.canvas.create_line(x - size/2, y - size/2, x + size/2, y + size/2, fill="#FF0000", width=2)
-        self.canvas.create_line(x - size/2, y + size/2, x + size/2, y - size/2, fill="#FF0000", width=2)
+    def _draw_malware(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y - size/2, x + size, y - size/2, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y + size/2, x + size, y + size/2, fill=color, width=1, tags=tag)
+        self.canvas.create_line(x - size/2, y - size/2, x + size/2, y + size/2, fill="#FF0000", width=2, tags=tag)
+        self.canvas.create_line(x - size/2, y + size/2, x + size/2, y - size/2, fill="#FF0000", width=2, tags=tag)
 
-    def _draw_honeypot(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size/2, x + size, y + size, outline=color, width=1)
-        self.canvas.create_rectangle(x - size/3, y - size, x + size/3, y - size/2, outline=color, width=1)
-        self.canvas.create_polygon(x - size/2, y, x, y - size/4, x + size/2, y, outline="#FF4400", fill="")
+    def _draw_honeypot(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size/2, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_rectangle(x - size/3, y - size, x + size/3, y - size/2, outline=color, width=1, tags=tag)
+        self.canvas.create_polygon(x - size/2, y, x, y - size/4, x + size/2, y, outline="#FF4400", fill="", tags=tag)
 
-    def _draw_sandbox(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=2)
-        self.canvas.create_rectangle(x - size/2, y - size/2, x + size/2, y + size/2, outline=color, width=1, dash=(3, 3))
-        self.canvas.create_oval(x - size/4, y - size/4, x + size/4, y + size/4, fill=color, outline=color)
+    def _draw_sandbox(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=2, tags=tag)
+        self.canvas.create_rectangle(x - size/2, y - size/2, x + size/2, y + size/2, outline=color, width=1, dash=(3, 3), tags=tag)
+        self.canvas.create_oval(x - size/4, y - size/4, x + size/4, y + size/4, fill=color, outline=color, tags=tag)
 
-    def _draw_quarantine(self, x, y, size, color):
-        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=2)
-        self.canvas.create_line(x - size, y - size, x + size, y + size, fill="#FF0000", width=3)
-        self.canvas.create_line(x - size, y + size, x + size, y - size, fill="#FF0000", width=3)
+    def _draw_quarantine(self, x, y, size, color, tag):
+        self.canvas.create_oval(x - size, y - size, x + size, y + size, outline=color, width=2, tags=tag)
+        self.canvas.create_line(x - size, y - size, x + size, y + size, fill="#FF0000", width=3, tags=tag)
+        self.canvas.create_line(x - size, y + size, x + size, y - size, fill="#FF0000", width=3, tags=tag)
 
-    def _draw_whitelist(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
+    def _draw_whitelist(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
         for i in range(3):
             y_pos = y - size/2 + i * size/2
-            self.canvas.create_line(x - size/2, y_pos, x + size/2, y_pos, fill=color, width=1)
-            self.canvas.create_line(x - 3*size/4, y_pos - size/8, x - size/2, y_pos, fill="#00FF00", width=2)
-            self.canvas.create_line(x - size/2, y_pos, x - size/4, y_pos - size/4, fill="#00FF00", width=2)
+            self.canvas.create_line(x - size/2, y_pos, x + size/2, y_pos, fill=color, width=1, tags=tag)
+            self.canvas.create_line(x - 3*size/4, y_pos - size/8, x - size/2, y_pos, fill="#00FF00", width=2, tags=tag)
+            self.canvas.create_line(x - size/2, y_pos, x - size/4, y_pos - size/4, fill="#00FF00", width=2, tags=tag)
 
-    def _draw_blacklist(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
+    def _draw_blacklist(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
         for i in range(3):
             y_pos = y - size/2 + i * size/2
-            self.canvas.create_line(x - size/2, y_pos, x + size/2, y_pos, fill=color, width=1)
-            self.canvas.create_line(x - 3*size/4, y_pos - size/8, x - size/4, y_pos + size/8, fill="#FF0000", width=2)
-            self.canvas.create_line(x - 3*size/4, y_pos + size/8, x - size/4, y_pos - size/8, fill="#FF0000", width=2)
+            self.canvas.create_line(x - size/2, y_pos, x + size/2, y_pos, fill=color, width=1, tags=tag)
+            self.canvas.create_line(x - 3*size/4, y_pos - size/8, x - size/4, y_pos + size/8, fill="#FF0000", width=2, tags=tag)
+            self.canvas.create_line(x - 3*size/4, y_pos + size/8, x - size/4, y_pos - size/8, fill="#FF0000", width=2, tags=tag)
 
-    def _draw_exploit(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
+    def _draw_exploit(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
         points = [x - size, y - size, x - size/2, y - size/2, x, y - size, 
                  x + size/2, y - size/2, x + size, y + size]
-        self.canvas.create_line(points, fill="#FF4400", width=3)
+        self.canvas.create_line(points, fill="#FF4400", width=3, tags=tag)
 
-    def _draw_vulnerability(self, x, y, size, color):
+    def _draw_vulnerability(self, x, y, size, color, tag):
         self.canvas.create_polygon(x, y - size, x - size, y, x - size/2, y + size, 
-                                 x + size/2, y + size, x + size, y, outline=color, fill="")
-        self.canvas.create_line(x - size/2, y - size/2, x + size/2, y + size/2, fill="#FF0000", width=3)
+                                 x + size/2, y + size, x + size, y, outline=color, fill="", tags=tag)
+        self.canvas.create_line(x - size/2, y - size/2, x + size/2, y + size/2, fill="#FF0000", width=3, tags=tag)
 
-    def _draw_patch(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x - size, y, x + size, y, fill="#FF0000", width=2)
+    def _draw_patch(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x - size, y, x + size, y, fill="#FF0000", width=2, tags=tag)
         self.canvas.create_rectangle(x - size/2, y - size/4, x + size/2, y + size/4, 
-                                   fill="#00FF00", outline="#00FF00")
+                                   fill="#00FF00", outline="#00FF00", tags=tag)
 
-    def _draw_update(self, x, y, size, color):
+    def _draw_update(self, x, y, size, color, tag):
         self.canvas.create_arc(x - size, y - size, x + size, y + size, start=45, extent=270, 
-                             style=tk.ARC, outline=color, width=2)
+                             style=tk.ARC, outline=color, width=2, tags=tag)
         self.canvas.create_polygon(x + size/2, y - size, x + size, y - size/2, 
-                                 x + 3*size/4, y - 3*size/4, outline=color, fill=color)
+                                 x + 3*size/4, y - 3*size/4, outline=color, fill=color, tags=tag)
 
-    def _draw_backup(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x + size/2, y + size/2, outline=color, width=1)
-        self.canvas.create_rectangle(x - size/2, y - size/2, x + size, y + size, outline=color, width=2)
+    def _draw_backup(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x + size/2, y + size/2, outline=color, width=1, tags=tag)
+        self.canvas.create_rectangle(x - size/2, y - size/2, x + size, y + size, outline=color, width=2, tags=tag)
 
-    def _draw_restore(self, x, y, size, color):
+    def _draw_restore(self, x, y, size, color, tag):
         self.canvas.create_arc(x - size, y - size, x + size, y + size, start=135, extent=270, 
-                             style=tk.ARC, outline=color, width=2)
+                             style=tk.ARC, outline=color, width=2, tags=tag)
         self.canvas.create_polygon(x - size/2, y - size, x - size, y - size/2, 
-                                 x - 3*size/4, y - 3*size/4, outline=color, fill=color)
+                                 x - 3*size/4, y - 3*size/4, outline=color, fill=color, tags=tag)
 
-    def _draw_mirror(self, x, y, size, color):
-        self.canvas.create_rectangle(x - size, y - size, x, y + size, outline=color, width=1)
-        self.canvas.create_rectangle(x, y - size, x + size, y + size, outline=color, width=1)
-        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=2)
+    def _draw_mirror(self, x, y, size, color, tag):
+        self.canvas.create_rectangle(x - size, y - size, x, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_rectangle(x, y - size, x + size, y + size, outline=color, width=1, tags=tag)
+        self.canvas.create_line(x, y - size, x, y + size, fill=color, width=2, tags=tag)
 
-    def _draw_clone(self, x, y, size, color):
+    def _draw_clone(self, x, y, size, color, tag):
         for i in range(3):
             offset = i * size / 4
             self.canvas.create_oval(x - size + offset, y - size + offset, 
                                   x + size/2 + offset, y + size/2 + offset, 
-                                  outline=color, width=1)
+                                  outline=color, width=1, tags=tag)
 
-    def _draw_sync(self, x, y, size, color):
+    def _draw_sync(self, x, y, size, color, tag):
         self.canvas.create_arc(x - size, y - size/2, x, y + size/2, start=0, extent=180, 
-                             style=tk.ARC, outline=color, width=2)
+                             style=tk.ARC, outline=color, width=2, tags=tag)
         self.canvas.create_arc(x, y - size/2, x + size, y + size/2, start=180, extent=180, 
-                             style=tk.ARC, outline=color, width=2)
+                             style=tk.ARC, outline=color, width=2, tags=tag)
         self.canvas.create_polygon(x - size/2, y - size/2, x - 3*size/4, y - size/4, 
-                                 x - 3*size/4, y - 3*size/4, outline=color, fill=color)
+                                 x - 3*size/4, y - 3*size/4, outline=color, fill=color, tags=tag)
         self.canvas.create_polygon(x + size/2, y + size/2, x + 3*size/4, y + size/4, 
-                                 x + 3*size/4, y + 3*size/4, outline=color, fill=color)
+                                 x + 3*size/4, y + 3*size/4, outline=color, fill=color, tags=tag)
 
 
 if __name__ == "__main__":
