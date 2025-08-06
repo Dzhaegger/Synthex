@@ -276,6 +276,8 @@ class SynthexTerminalEnhanced(tk.Tk):
         # --- FIN DEL CÓDIGO A AÑADIR ---
         elif command == "enc":
             self.show_encryption_view()
+        elif command == "dec":
+            self.show_decryption_view()
         elif command == "clear":
             self.clear_console()
         elif command == "status":
@@ -386,6 +388,9 @@ AVAILABLE COMMANDS:
   test          - Display all glyph constellations
   encrypt <text>- Encrypt text to Synthex
   decrypt <code>- Decrypt Synthex code
+  alpha         - Show synthex dictionary
+  enc           - Dedicated encryption system
+  dec           - Dedicated decryption system
   
 ATTACK SIMULATION:
   breach <target>  - Attempt system breach
@@ -651,6 +656,109 @@ SYSTEM STATUS REPORT:
         
         # Llama a la función start_terminal para reconstruir la vista y reiniciar la animación
         self.start_terminal()      
+
+    def show_decryption_view(self):
+        """Muestra una interfaz para desencriptar mensajes usando los pictogramas Synthex."""
+        # Detener la animación de la terminal si está activa
+        if self.after_id is not None:
+            self.after_cancel(self.after_id)
+            self.after_id = None
+        
+        # Limpiar la vista actual del programa
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        # Frame contenedor principal para la nueva vista de desencriptación
+        self.decryption_frame = tk.Frame(self, bg=self.bg_color, padx=20, pady=20)
+        self.decryption_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Configuración de la cuadrícula
+        self.decryption_frame.columnconfigure(0, weight=1)
+        self.decryption_frame.columnconfigure(1, weight=1)
+
+        # Título de la vista
+        title_label = tk.Label(self.decryption_frame, text="SYNTHEX DECRYPTION TOOL", font=("Courier", 24, "bold"),
+                               fg=self.accent_color, bg=self.bg_color)
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 10), sticky="ew")
+
+        # Etiqueta para cerrar (advisor)
+        close_advisor = tk.Label(self.decryption_frame, text="< CLICK TO CLOSE >", font=("Courier", 10, "italic"),
+                                 bg=self.bg_color, fg="#5D6064", cursor="hand2")
+        close_advisor.grid(row=1, column=0, columnspan=2, pady=(0, 20), sticky="ew")
+        close_advisor.bind("<Button-1>", lambda e: self.return_to_terminal())
+
+        # Frame para la entrada
+        input_frame = tk.LabelFrame(self.decryption_frame, text="GLYPHS TO DECRYPT:", font=("Courier", 12),
+                                    fg=self.text_color, bg=self.bg_color, bd=2, relief=tk.SOLID)
+        input_frame.grid(row=2, column=0, columnspan=2, pady=(0, 10), sticky="nsew")
+        
+        self.input_text_area = tk.Text(input_frame, bg="#0E0E0E", fg="#00FFFF", font=("Courier", 24),
+                                     height=8, insertbackground="#00FFFF", relief=tk.FLAT, bd=0)
+        self.input_text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Frame para los botones
+        button_frame = tk.Frame(self.decryption_frame, bg=self.bg_color)
+        button_frame.grid(row=3, column=0, columnspan=2, pady=(0, 20))
+
+        tk.Button(button_frame, text="DECRYPT", command=self.decrypt_message,
+                  bg=self.accent_color, fg=self.bg_color, font=("Courier", 12, "bold"),
+                  activebackground=self.text_color, activeforeground=self.bg_color,
+                  bd=0, relief=tk.FLAT).pack(side=tk.LEFT, padx=10, ipadx=20)
+        
+        tk.Button(button_frame, text="COPY DECRYPTED", command=self.copy_decrypted,
+                  bg=self.text_color, fg=self.bg_color, font=("Courier", 12, "bold"),
+                  activebackground=self.accent_color, activeforeground=self.bg_color,
+                  bd=0, relief=tk.FLAT).pack(side=tk.LEFT, padx=10, ipadx=20)
+
+        # Frame para la salida
+        output_frame = tk.LabelFrame(self.decryption_frame, text="DECRYPTED MESSAGE:", font=("Courier", 12),
+                                     fg=self.text_color, bg=self.bg_color, bd=2, relief=tk.SOLID)
+        output_frame.grid(row=4, column=0, columnspan=2, pady=(0, 10), sticky="nsew")
+        
+        self.output_text_area = tk.Text(output_frame, bg="#0E0E0E", fg="#00FF00", font=("Courier", 12),
+                                      height=5, wrap="word", relief=tk.FLAT, bd=0)
+        self.output_text_area.config(state=tk.DISABLED)
+        self.output_text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)   
+
+    def return_to_terminal(self):
+        """Destruye la vista de desencriptación o encriptación y regresa a la pantalla de la terminal."""
+        if hasattr(self, 'decryption_frame') and self.decryption_frame:
+            self.decryption_frame.destroy()
+        elif hasattr(self, 'encryption_frame') and self.encryption_frame:
+            self.encryption_frame.destroy()
+        
+        self.start_terminal()     
+
+    def decrypt_message(self):
+        """Toma los pictogramas de entrada y los desencripta a palabras Synthex."""
+        input_text = self.input_text_area.get("1.0", tk.END).strip()
+        # Se asume que los pictogramas están separados por guiones
+        glyphs = input_text.split("—")
+        decrypted_words = []
+        
+        for glyph in glyphs:
+            # Si el pictograma existe en el diccionario inverso, usa la palabra
+            if glyph in REV_SYNTHEX_DICTIONARY:
+                decrypted_words.append(REV_SYNTHEX_DICTIONARY[glyph])
+            # Si no existe, usa un marcador de pictograma desconocido
+            else:
+                decrypted_words.append(f"[UNK_GLYPH]")
+        
+        decrypted_text = " ".join(decrypted_words)
+        
+        self.output_text_area.config(state=tk.NORMAL)
+        self.output_text_area.delete("1.0", tk.END)
+        self.output_text_area.insert("1.0", decrypted_text)
+        self.output_text_area.config(state=tk.DISABLED)
+
+    def copy_decrypted(self):
+        """Copia el texto desencriptado al portapapeles."""
+        decrypted_text = self.output_text_area.get("1.0", tk.END).strip()
+        if decrypted_text:
+            self.clipboard_clear()
+            self.clipboard_append(decrypted_text)
+            self.console_status.config(text="Decrypted message copied to clipboard.")
+            self.after(2000, lambda: self.console_status.config(text=""))   
 
 
     def show_blackwall(self):
@@ -1075,6 +1183,10 @@ scan        - Perform security scan
 reset       - Emergency system restoration
 theme <n>   - Change interface theme
 test        - Show all glyph constellations
+alpha       - Show synthex dictionary
+enc         - Dedicated encryption system
+dec         - Dedicated decryption system
+
 
 SYNTHEX OPERATIONS:
 encrypt <text>    - Convert to Synthex glyphs
