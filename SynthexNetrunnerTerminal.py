@@ -76,6 +76,7 @@ GLYPH_CONSTELLATIONS = {
 class SynthexTerminalEnhanced(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.after_id = None  # <--- Añade esta línea
         self.title("Synthex Netrunner Terminal v2.0 - Enhanced")
         self.geometry("1600x900")
         
@@ -269,6 +270,12 @@ class SynthexTerminalEnhanced(tk.Tk):
             self.show_help()
         elif command == "man":
             self.show_manual()
+        # --- AÑADE ESTA LÍNEA ---
+        elif command == "alpha":
+            self.show_synthex_alphabet()
+        # --- FIN DEL CÓDIGO A AÑADIR ---
+        elif command == "enc":
+            self.show_encryption_view()
         elif command == "clear":
             self.clear_console()
         elif command == "status":
@@ -478,6 +485,173 @@ SYSTEM STATUS REPORT:
         """Maneja el cierre de la ventana"""
         if messagebox.askyesno("Exit", "Are you sure you want to exit?"):
             self.destroy()
+
+    def show_synthex_alphabet(self):
+        """Muestra el alfabeto Synthex en una cuadrícula con una instrucción para cerrar."""
+        # Limpiar la vista actual del programa
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        # Frame contenedor para la nueva vista del alfabeto
+        self.alphabet_frame = tk.Frame(self, bg=self.bg_color, padx=10, pady=10)
+        self.alphabet_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Título de la vista
+        tk.Label(self.alphabet_frame, text="SYNTHEX ALPHABET", font=("Courier", 24, "bold"),
+                fg=self.accent_color, bg=self.bg_color).pack(pady=10)
+
+        # Etiqueta que funciona como botón para cerrar
+        close_advisor = tk.Label(self.alphabet_frame, text="< Click to close >", font=("Courier", 10),
+                                bg=self.bg_color, fg=self.text_color, cursor="hand2")
+        close_advisor.pack(pady=(0, 10))
+        close_advisor.bind("<Button-1>", lambda e: self.return_to_start_screen())
+
+        # Frame para la cuadrícula de pictogramas
+        grid_container = tk.Frame(self.alphabet_frame, bg=self.bg_color)
+        grid_container.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        num_columns = 8
+        current_row = 0
+        current_col = 0
+
+        sorted_keys = sorted(SYNTHEX_DICTIONARY.keys())
+
+        for word in sorted_keys:
+            glyph = SYNTHEX_DICTIONARY[word]
+
+            cell_frame = tk.Frame(grid_container, bg=self.bg_color, bd=2, relief=tk.SOLID)
+            cell_frame.grid(row=current_row, column=current_col, padx=5, pady=5, sticky="nsew")
+
+            word_label = tk.Label(cell_frame, text=word.upper(), font=("Courier", 12),
+                                bg=self.bg_color, fg=self.text_color)
+            word_label.pack(pady=(5, 0))
+
+            glyph_label = tk.Label(cell_frame, text=glyph, font=("Courier", 40),
+                                bg=self.bg_color, fg=self.accent_color)
+            glyph_label.pack(pady=(0, 5))
+
+            current_col += 1
+            if current_col >= num_columns:
+                current_col = 0
+                current_row += 1
+
+        for i in range(num_columns):
+            grid_container.columnconfigure(i, weight=1)
+        for i in range(current_row + 1):
+            grid_container.rowconfigure(i, weight=1)
+
+    def return_to_start_screen(self):
+        """Destruye la vista del alfabeto y regresa a la pantalla de la terminal."""
+        # Destruye el frame del alfabeto si existe
+        if hasattr(self, 'alphabet_frame') and self.alphabet_frame:
+            self.alphabet_frame.destroy()
+        
+        # Llama a la función que crea la pantalla de la terminal
+        self.start_terminal()     
+
+    def show_encryption_view(self):
+        """Muestra una interfaz de encriptación con un estilo más cyberpunk."""
+        # Detener la animación de la terminal si está activa
+        if self.after_id is not None:
+            self.after_cancel(self.after_id)
+            self.after_id = None
+            
+        # Limpiar la vista actual del programa
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        # Frame contenedor principal para la nueva vista de encriptación
+        self.encryption_frame = tk.Frame(self, bg=self.bg_color, padx=20, pady=20)
+        self.encryption_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Configuración de la cuadrícula
+        self.encryption_frame.columnconfigure(0, weight=1)
+        self.encryption_frame.columnconfigure(1, weight=1)
+
+        # Título de la vista
+        title_label = tk.Label(self.encryption_frame, text="SYNTHEX ENCRYPTION TOOL", font=("Courier", 24, "bold"),
+                               fg=self.accent_color, bg=self.bg_color)
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 10), sticky="ew")
+
+        # Etiqueta para cerrar (advisor)
+        close_advisor = tk.Label(self.encryption_frame, text="< CLICK TO CLOSE >", font=("Courier", 10, "italic"),
+                                 bg=self.bg_color, fg="#5D6064", cursor="hand2")
+        close_advisor.grid(row=1, column=0, columnspan=2, pady=(0, 20), sticky="ew")
+        close_advisor.bind("<Button-1>", lambda e: self.return_to_terminal())
+
+        # Frame para la entrada
+        input_frame = tk.LabelFrame(self.encryption_frame, text="MESSAGE TO ENCRYPT:", font=("Courier", 12),
+                                    fg=self.text_color, bg=self.bg_color, bd=2, relief=tk.SOLID)
+        input_frame.grid(row=2, column=0, columnspan=2, pady=(0, 10), sticky="nsew")
+        
+        self.input_text_area = tk.Text(input_frame, bg="#0E0E0E", fg="#00FF00", font=("Courier", 12),
+                                     height=8, insertbackground="#00FF00", relief=tk.FLAT, bd=0)
+        self.input_text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Frame para los botones
+        button_frame = tk.Frame(self.encryption_frame, bg=self.bg_color)
+        button_frame.grid(row=3, column=0, columnspan=2, pady=(0, 20))
+
+        tk.Button(button_frame, text="ENCRYPT", command=self.encrypt_message,
+                  bg=self.accent_color, fg=self.bg_color, font=("Courier", 12, "bold"),
+                  activebackground=self.text_color, activeforeground=self.bg_color,
+                  bd=0, relief=tk.FLAT).pack(side=tk.LEFT, padx=10, ipadx=20)
+        
+        tk.Button(button_frame, text="COPY", command=self.copy_encrypted,
+                  bg=self.text_color, fg=self.bg_color, font=("Courier", 12, "bold"),
+                  activebackground=self.accent_color, activeforeground=self.bg_color,
+                  bd=0, relief=tk.FLAT).pack(side=tk.LEFT, padx=10, ipadx=20)
+
+        # Frame para la salida
+        output_frame = tk.LabelFrame(self.encryption_frame, text="ENCRYPTED GLYPHS:", font=("Courier", 12),
+                                     fg=self.text_color, bg=self.bg_color, bd=2, relief=tk.SOLID)
+        output_frame.grid(row=4, column=0, columnspan=2, pady=(0, 10), sticky="nsew")
+        
+        self.output_text_area = tk.Text(output_frame, bg="#0E0E0E", fg="#00FFFF", font=("Courier", 24),
+                                      height=5, wrap="word", relief=tk.FLAT, bd=0)
+        self.output_text_area.config(state=tk.DISABLED)
+        self.output_text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+    def encrypt_message(self):
+        """Toma el texto de entrada y lo encripta en pictogramas Synthex, separados por un guion."""
+        # --- CAMBIO IMPORTANTE AQUÍ: Se asegura que el texto esté en minúsculas ---
+        input_text = self.input_text_area.get("1.0", tk.END).strip().lower()
+        words = input_text.split()
+        encrypted_glyphs = []
+        
+        for word in words:
+            # Si la palabra existe en el diccionario, usa el pictograma
+            if word in SYNTHEX_DICTIONARY:
+                encrypted_glyphs.append(SYNTHEX_DICTIONARY[word])
+            # Si no existe, usa un marcador de palabra desconocida
+            else:
+                encrypted_glyphs.append(f"[UNK_WORD]")
+        
+        # --- CAMBIO IMPORTANTE AQUÍ: Unir los pictogramas con un guion ---
+        encrypted_text = "—".join(encrypted_glyphs)
+        
+        self.output_text_area.config(state=tk.NORMAL)
+        self.output_text_area.delete("1.0", tk.END)
+        self.output_text_area.insert("1.0", encrypted_text)
+        self.output_text_area.config(state=tk.DISABLED)
+
+    def copy_encrypted(self):
+        """Copia el texto encriptado al portapapeles."""
+        encrypted_text = self.output_text_area.get("1.0", tk.END).strip()
+        if encrypted_text:
+            self.clipboard_clear()
+            self.clipboard_append(encrypted_text)
+            self.console_status.config(text="Encrypted message copied to clipboard.")
+            self.after(2000, lambda: self.console_status.config(text=""))   
+
+    def return_to_terminal(self):
+        """Destruye la vista de encriptación y regresa a la pantalla de la terminal."""
+        if hasattr(self, 'encryption_frame') and self.encryption_frame:
+            self.encryption_frame.destroy()
+        
+        # Llama a la función start_terminal para reconstruir la vista y reiniciar la animación
+        self.start_terminal()      
+
 
     def show_blackwall(self):
         """Dibuja el efecto del Muro Negro."""
@@ -954,6 +1128,8 @@ END TRANSMISSION
         
         manual_text.insert(tk.END, manual_content)
         manual_text.config(state=tk.DISABLED)
+
+        
 
     def draw_glyph_shape(self, glyph, x, y, size, color, tag=""):
         """Dibuja la forma correspondiente a un glifo"""
