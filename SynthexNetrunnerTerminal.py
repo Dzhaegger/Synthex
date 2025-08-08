@@ -81,7 +81,6 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.geometry("1600x900")
         #self.iconbitmap("synthex.ico")
     
-        
         # Estado del sistema
         self.current_theme = "ice"
         self.system_integrity = 100
@@ -90,7 +89,10 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.console_history = []
         self.data_flow_points = []
         self.glyph_tooltips = {}
-        
+
+        # Track current view for reliable restoration
+        self.current_view = "start"  # Possible values: start, terminal, alphabet, encryption, decryption
+
         self.apply_theme()
         # --- CAMBIO AQUI: Ahora la app empieza con la pantalla de inicio ---
         self.start_screen()
@@ -105,6 +107,7 @@ class SynthexTerminalEnhanced(tk.Tk):
     
     # --- NUEVA FUNCIÓN: Pantalla de inicio ---
     def start_screen(self):
+        self.current_view = "start"
         self.apply_theme()
         
         self.start_frame = tk.Frame(self, bg=self.bg_color, padx=50, pady=50)
@@ -127,6 +130,7 @@ class SynthexTerminalEnhanced(tk.Tk):
     
     def start_terminal(self):
         """Destruye la pantalla de inicio y crea la terminal"""
+        self.current_view = "terminal"
         self.start_frame.destroy()
         self.setup_ui()
         self.start_animations()
@@ -473,13 +477,39 @@ SYSTEM STATUS REPORT:
             self.visualize_synthex_network(self.current_glyphs)
 
     def change_theme(self, event=None):
-        """Cambia el tema de la aplicación"""
-        self.current_theme = self.theme_var.get()
-        self.apply_theme()
-        # --- CAMBIO AQUI: reconstruye la interfaz al cambiar de tema ---
-        self.setup_ui()
-        self.write_to_console(f"Theme changed to: {self.current_theme}", "#FFFF00")
-    # --- FIN DEL CAMBIO ---
+        """Cambia el tema y reinicia la interfaz, preservando la consola y la visualización actual."""
+        selected_theme = self.theme_var.get()
+        if selected_theme != self.current_theme:
+            self.current_theme = selected_theme
+            self.apply_theme()
+            # Guarda el historial de la consola y los glifos actuales
+            saved_console = self.console_output.get("1.0", tk.END) if hasattr(self, "console_output") else ""
+            saved_glyphs = list(self.current_glyphs) if hasattr(self, "current_glyphs") else []
+            saved_view = self.current_view
+
+            # Destruye todos los widgets y reconstruye la interfaz principal
+            for widget in self.winfo_children():
+                widget.destroy()
+            self.setup_ui()
+
+            # Restaura el historial de la consola
+            if saved_console and hasattr(self, "console_output"):
+                self.console_output.config(state=tk.NORMAL)
+                self.console_output.delete("1.0", tk.END)
+                self.console_output.insert("1.0", saved_console)
+                self.console_output.config(state=tk.DISABLED)
+                self.console_output.see(tk.END)
+
+            # Restaura la visualización de los glifos
+            if saved_glyphs and hasattr(self, "canvas"):
+                self.visualize_synthex_network(saved_glyphs)
+
+            # Actualiza los labels de estado si existen
+            if hasattr(self, "integrity_label"):
+                self.integrity_label.config(bg=self.bg_color, fg=self.accent_color)
+            if hasattr(self, "threat_label"):
+                self.threat_label.config(bg=self.bg_color)
+            self.write_to_console(f"Theme changed to: {self.current_theme}", "#FFFF00")
 
     def clear_console(self):
         """Limpia la consola"""
@@ -495,6 +525,7 @@ SYSTEM STATUS REPORT:
 
     def show_synthex_alphabet(self):
         """Muestra el alfabeto Synthex en una cuadrícula con una instrucción para cerrar."""
+        self.current_view = "alphabet"
         # Limpiar la vista actual del programa
         for widget in self.winfo_children():
             widget.destroy()
@@ -558,6 +589,7 @@ SYSTEM STATUS REPORT:
 
     def show_encryption_view(self):
         """Muestra una interfaz de encriptación con un estilo más cyberpunk."""
+        self.current_view = "encryption"
         # Detener la animación de la terminal si está activa
         if self.after_id is not None:
             self.after_cancel(self.after_id)
@@ -661,6 +693,7 @@ SYSTEM STATUS REPORT:
 
     def show_decryption_view(self):
         """Muestra una interfaz para desencriptar mensajes usando los pictogramas Synthex."""
+        self.current_view = "decryption"
         # Detener la animación de la terminal si está activa
         if self.after_id is not None:
             self.after_cancel(self.after_id)
