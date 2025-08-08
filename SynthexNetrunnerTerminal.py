@@ -61,7 +61,7 @@ THEMES = {
 }
 
 # Listas para la lógica de animación
-ATTACK_GLYPH_WORDS = ["breach", "corrupt", "virus", "worm", "trojan", "exploit", "botnet", "ransomware", "spyware", "malware", "keylogger", "threat", "anomaly", "chaos"]
+ATTACK_GLYPH_WORDS = ["breach", "corrupt", "virus", "worm", "trojan", "exploit", "botnet", "ransomware", "spyware", "malware", "keylogger", "threat"]
 SECURITY_GLYPH_WORDS = ["firewall", "security", "stable", "sandbox", "honeypot", "whitelist", "quarantine", "patch", "backup"]
 
 # --- NUEVA ESTRUCTURA DE CONSTELACIONES ---
@@ -79,9 +79,11 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.after_id = None  # <--- Añade esta línea
         self.title("Synthex Netrunner Terminal v2.0 - Enhanced")
         self.geometry("1600x900")
+        #self.iconbitmap("synthex.ico")
+    
         
         # Estado del sistema
-        self.current_theme = "classic"
+        self.current_theme = "ice"
         self.system_integrity = 100
         self.threat_level = 0
         self.active_processes = []
