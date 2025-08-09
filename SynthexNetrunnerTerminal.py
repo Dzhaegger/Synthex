@@ -526,6 +526,9 @@ SYSTEM STATUS REPORT:
     def show_synthex_alphabet(self):
         """Muestra el alfabeto Synthex en una cuadrícula con una instrucción para cerrar."""
         self.current_view = "alphabet"
+        # --- GUARDAR ESTADO ANTES DE CAMBIAR DE VISTA ---
+        self._save_terminal_state()
+
         # Limpiar la vista actual del programa
         for widget in self.winfo_children():
             widget.destroy()
@@ -542,7 +545,7 @@ SYSTEM STATUS REPORT:
         close_advisor = tk.Label(self.alphabet_frame, text="< Click to close >", font=("Courier", 10),
                                 bg=self.bg_color, fg=self.text_color, cursor="hand2")
         close_advisor.pack(pady=(0, 10))
-        close_advisor.bind("<Button-1>", lambda e: self.return_to_start_screen())
+        close_advisor.bind("<Button-1>", lambda e: self.return_to_terminal_restore())
 
         # Frame para la cuadrícula de pictogramas
         grid_container = tk.Frame(self.alphabet_frame, bg=self.bg_color)
@@ -578,23 +581,23 @@ SYSTEM STATUS REPORT:
         for i in range(current_row + 1):
             grid_container.rowconfigure(i, weight=1)
 
-    def return_to_start_screen(self):
-        """Destruye la vista del alfabeto y regresa a la pantalla de la terminal."""
-        # Destruye el frame del alfabeto si existe
+    def return_to_terminal_restore(self):
+        """Destruye la vista del alfabeto y regresa a la pantalla de la terminal restaurando el estado previo."""
         if hasattr(self, 'alphabet_frame') and self.alphabet_frame:
             self.alphabet_frame.destroy()
-        
-        # Llama a la función que crea la pantalla de la terminal
-        self.start_terminal()     
+        self._restore_terminal_state()
 
     def show_encryption_view(self):
         """Muestra una interfaz de encriptación con un estilo más cyberpunk."""
         self.current_view = "encryption"
+        # --- GUARDAR ESTADO ANTES DE CAMBIAR DE VISTA ---
+        self._save_terminal_state()
+
         # Detener la animación de la terminal si está activa
         if self.after_id is not None:
             self.after_cancel(self.after_id)
             self.after_id = None
-            
+
         # Limpiar la vista actual del programa
         for widget in self.winfo_children():
             widget.destroy()
@@ -616,7 +619,7 @@ SYSTEM STATUS REPORT:
         close_advisor = tk.Label(self.encryption_frame, text="< CLICK TO CLOSE >", font=("Courier", 10, "italic"),
                                  bg=self.bg_color, fg="#5D6064", cursor="hand2")
         close_advisor.grid(row=1, column=0, columnspan=2, pady=(0, 20), sticky="ew")
-        close_advisor.bind("<Button-1>", lambda e: self.return_to_terminal())
+        close_advisor.bind("<Button-1>", lambda e: self.return_to_terminal_restore())
 
         # Frame para la entrada
         input_frame = tk.LabelFrame(self.encryption_frame, text="MESSAGE TO ENCRYPT:", font=("Courier", 12),
@@ -653,20 +656,16 @@ SYSTEM STATUS REPORT:
 
     def encrypt_message(self):
         """Toma el texto de entrada y lo encripta en pictogramas Synthex, separados por un guion."""
-        # --- CAMBIO IMPORTANTE AQUÍ: Se asegura que el texto esté en minúsculas ---
         input_text = self.input_text_area.get("1.0", tk.END).strip().lower()
         words = input_text.split()
         encrypted_glyphs = []
         
         for word in words:
-            # Si la palabra existe en el diccionario, usa el pictograma
             if word in SYNTHEX_DICTIONARY:
                 encrypted_glyphs.append(SYNTHEX_DICTIONARY[word])
-            # Si no existe, usa un marcador de palabra desconocida
             else:
                 encrypted_glyphs.append(f"[UNK_WORD]")
         
-        # --- CAMBIO IMPORTANTE AQUÍ: Unir los pictogramas con un guion ---
         encrypted_text = "—".join(encrypted_glyphs)
         
         self.output_text_area.config(state=tk.NORMAL)
@@ -680,20 +679,17 @@ SYSTEM STATUS REPORT:
         if encrypted_text:
             self.clipboard_clear()
             self.clipboard_append(encrypted_text)
-            self.console_status.config(text="Encrypted message copied to clipboard.")
-            self.after(2000, lambda: self.console_status.config(text=""))   
-
-    def return_to_terminal(self):
-        """Destruye la vista de encriptación y regresa a la pantalla de la terminal."""
-        if hasattr(self, 'encryption_frame') and self.encryption_frame:
-            self.encryption_frame.destroy()
-        
-        # Llama a la función start_terminal para reconstruir la vista y reiniciar la animación
-        self.start_terminal()      
+            # Si existe console_status, mostrar mensaje
+            if hasattr(self, "console_status"):
+                self.console_status.config(text="Encrypted message copied to clipboard.")
+                self.after(2000, lambda: self.console_status.config(text=""))   
 
     def show_decryption_view(self):
         """Muestra una interfaz para desencriptar mensajes usando los pictogramas Synthex."""
         self.current_view = "decryption"
+        # --- GUARDAR ESTADO ANTES DE CAMBIAR DE VISTA ---
+        self._save_terminal_state()
+
         # Detener la animación de la terminal si está activa
         if self.after_id is not None:
             self.after_cancel(self.after_id)
@@ -720,7 +716,7 @@ SYSTEM STATUS REPORT:
         close_advisor = tk.Label(self.decryption_frame, text="< CLICK TO CLOSE >", font=("Courier", 10, "italic"),
                                  bg=self.bg_color, fg="#5D6064", cursor="hand2")
         close_advisor.grid(row=1, column=0, columnspan=2, pady=(0, 20), sticky="ew")
-        close_advisor.bind("<Button-1>", lambda e: self.return_to_terminal())
+        close_advisor.bind("<Button-1>", lambda e: self.return_to_terminal_restore())
 
         # Frame para la entrada
         input_frame = tk.LabelFrame(self.decryption_frame, text="GLYPHS TO DECRYPT:", font=("Courier", 12),
@@ -755,27 +751,15 @@ SYSTEM STATUS REPORT:
         self.output_text_area.config(state=tk.DISABLED)
         self.output_text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)   
 
-    def return_to_terminal(self):
-        """Destruye la vista de desencriptación o encriptación y regresa a la pantalla de la terminal."""
-        if hasattr(self, 'decryption_frame') and self.decryption_frame:
-            self.decryption_frame.destroy()
-        elif hasattr(self, 'encryption_frame') and self.encryption_frame:
-            self.encryption_frame.destroy()
-        
-        self.start_terminal()     
-
     def decrypt_message(self):
         """Toma los pictogramas de entrada y los desencripta a palabras Synthex."""
         input_text = self.input_text_area.get("1.0", tk.END).strip()
-        # Se asume que los pictogramas están separados por guiones
         glyphs = input_text.split("—")
         decrypted_words = []
         
         for glyph in glyphs:
-            # Si el pictograma existe en el diccionario inverso, usa la palabra
             if glyph in REV_SYNTHEX_DICTIONARY:
                 decrypted_words.append(REV_SYNTHEX_DICTIONARY[glyph])
-            # Si no existe, usa un marcador de pictograma desconocido
             else:
                 decrypted_words.append(f"[UNK_GLYPH]")
         
@@ -792,35 +776,146 @@ SYSTEM STATUS REPORT:
         if decrypted_text:
             self.clipboard_clear()
             self.clipboard_append(decrypted_text)
-            self.console_status.config(text="Decrypted message copied to clipboard.")
-            self.after(2000, lambda: self.console_status.config(text=""))   
+            if hasattr(self, "console_status"):
+                self.console_status.config(text="Decrypted message copied to clipboard.")
+                self.after(2000, lambda: self.console_status.config(text=""))   
+
+    # --- FUNCIONES DE RESTAURACIÓN Y GUARDADO DE ESTADO ---
+    def _save_terminal_state(self):
+        """Guarda el estado actual de la terminal para restaurar después de salir de vistas secundarias."""
+        # Guarda el historial de la consola
+        self._saved_console = self.console_output.get("1.0", tk.END) if hasattr(self, "console_output") else ""
+        # Guarda los glifos visualizados
+        self._saved_glyphs = list(self.current_glyphs) if hasattr(self, "current_glyphs") else []
+        # Guarda la integridad y amenaza
+        self._saved_integrity = self.system_integrity
+        self._saved_threat = self.threat_level
+        # Guarda el tema actual
+        self._saved_theme = self.current_theme
+        # Guarda el historial de comandos
+        self._saved_history = list(self.console_history)
+        # Guarda los procesos activos
+        self._saved_processes = list(self.active_processes)
+
+    def _restore_terminal_state(self):
+        """Restaura el estado previo de la terminal después de salir de vistas secundarias."""
+        # Destruye todos los widgets y reconstruye la interfaz principal
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.setup_ui()
+
+        # Restaura el historial de la consola
+        if hasattr(self, "_saved_console") and hasattr(self, "console_output"):
+            self.console_output.config(state=tk.NORMAL)
+            self.console_output.delete("1.0", tk.END)
+            self.console_output.insert("1.0", self._saved_console)
+            self.console_output.config(state=tk.DISABLED)
+            self.console_output.see(tk.END)
+
+        # Restaura la visualización de los glifos
+        if hasattr(self, "_saved_glyphs") and self._saved_glyphs and hasattr(self, "canvas"):
+            self.visualize_synthex_network(self._saved_glyphs)
+
+        # Restaura integridad y amenaza
+        if hasattr(self, "_saved_integrity"):
+            self.system_integrity = self._saved_integrity
+        if hasattr(self, "_saved_threat"):
+            self.threat_level = self._saved_threat
+        self.update_system_status()
+
+        # Restaura el tema
+        if hasattr(self, "_saved_theme"):
+            self.current_theme = self._saved_theme
+            self.theme_var.set(self.current_theme)
+            self.apply_theme()
+
+        # Restaura historial y procesos
+        if hasattr(self, "_saved_history"):
+            self.console_history = list(self._saved_history)
+        if hasattr(self, "_saved_processes"):
+            self.active_processes = list(self._saved_processes)
+
+        # Inicia animaciones si corresponde
+        self.start_animations()
 
 
     def show_blackwall(self):
-        """Dibuja el efecto del Muro Negro."""
+        """Dibuja y anima el efecto del Muro Negro."""
+        # Guard: Verifica que el canvas existe y tiene tamaño válido
+        if not hasattr(self, "canvas"):
+            return
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        if canvas_width <= 1 or canvas_height <= 1:
+            self.after(50, self.show_blackwall)
+            return
+
         self.canvas.delete("all")
         self.write_to_console("WARNING: BLACKWALL PROTOCOL ACTIVATED - SYSTEM INTEGRITY LOST", "#FF0000")
         self.write_to_console("ATTEMPTING TO CONTAIN HOSTILE ENTITIES...", "#FF4400")
 
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-        
         symbols = "0123456789ABCDEF!@#$%^&*"
-        
+        self.blackwall_items = []
+
+        # Dibuja los símbolos y guarda sus ids y posiciones
         for _ in range(500):
             x = random.randint(0, canvas_width)
             y = random.randint(0, canvas_height)
             char = random.choice(symbols)
             size = random.randint(8, 20)
-            
             color = random.choice(["#FF0000", "#FF4400", "#FF8800"])
-            self.canvas.create_text(x + random.randint(-3, 3), y + random.randint(-3, 3),
-                                    text=char, fill=color, font=("Consolas", size), tags="blackwall")
+            item_id = self.canvas.create_text(x, y, text=char, fill=color, font=("Consolas", size), tags="blackwall")
+            dx = random.choice([-2, -1, 0, 1, 2])
+            dy = random.choice([-2, -1, 0, 1, 2])
+            self.blackwall_items.append({"id": item_id, "dx": dx, "dy": dy, "size": size})
 
+        # Dibuja líneas y guarda sus ids y movimientos
         for _ in range(100):
             x1, y1 = random.randint(0, canvas_width), random.randint(0, canvas_height)
             x2, y2 = random.randint(0, canvas_width), random.randint(0, canvas_height)
-            self.canvas.create_line(x1, y1, x2, y2, fill="#FF4400", width=1, dash=(2, 1), tags="blackwall")
+            item_id = self.canvas.create_line(x1, y1, x2, y2, fill="#FF4400", width=1, dash=(2, 1), tags="blackwall")
+            dx = random.choice([-2, -1, 0, 1, 2])
+            dy = random.choice([-2, -1, 0, 1, 2])
+            self.blackwall_items.append({"id": item_id, "dx": dx, "dy": dy, "is_line": True})
+
+        self.animate_blackwall()
+
+    def animate_blackwall(self):
+        """Anima los elementos del Blackwall moviéndolos y cambiando colores."""
+        if not hasattr(self, "blackwall_items"):
+            return
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        symbols = "0123456789ABCDEF!@#$%^&*"
+        colors = ["#FF0000", "#FF4400", "#FF8800"]
+
+        for item in self.blackwall_items:
+            if item.get("is_line"):
+                coords = self.canvas.coords(item["id"])
+                if len(coords) == 4:
+                    x1, y1, x2, y2 = coords
+                    # Mueve la línea
+                    x1_new = (x1 + item["dx"]) % canvas_width
+                    y1_new = (y1 + item["dy"]) % canvas_height
+                    x2_new = (x2 + item["dx"]) % canvas_width
+                    y2_new = (y2 + item["dy"]) % canvas_height
+                    self.canvas.coords(item["id"], x1_new, y1_new, x2_new, y2_new)
+            else:
+                coords = self.canvas.coords(item["id"])
+                if len(coords) == 2:
+                    x, y = coords
+                    x_new = (x + item["dx"]) % canvas_width
+                    y_new = (y + item["dy"]) % canvas_height
+                    self.canvas.coords(item["id"], x_new, y_new)
+                    # Cambia el símbolo y color aleatoriamente
+                    if random.random() < 0.1:
+                        new_char = random.choice(symbols)
+                        new_color = random.choice(colors)
+                        self.canvas.itemconfig(item["id"], text=new_char, fill=new_color)
+
+        # Repite la animación mientras la integridad sea 0
+        if self.system_integrity <= 0:
+            self.after(150, self.animate_blackwall)
 
     def visualize_synthex_network(self, glyphs, original_text=""):
         """Visualiza la red Synthex en el canvas"""
