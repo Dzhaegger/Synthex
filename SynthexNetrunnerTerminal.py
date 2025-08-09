@@ -82,7 +82,7 @@ class SynthexTerminalEnhanced(tk.Tk):
         #self.iconbitmap("synthex.ico")
     
         # Estado del sistema
-        self.current_theme = "ice"
+        self.current_theme = "classic"
         self.system_integrity = 100
         self.threat_level = 0
         self.active_processes = []
