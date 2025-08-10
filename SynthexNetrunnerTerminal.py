@@ -480,12 +480,10 @@ SYSTEM STATUS REPORT:
         """Cambia el tema y reinicia la interfaz, preservando la consola y la visualización actual."""
         selected_theme = self.theme_var.get()
         if selected_theme != self.current_theme:
+            # Guarda el estado completo antes de cambiar el tema
+            self._save_terminal_state()
             self.current_theme = selected_theme
             self.apply_theme()
-            # Guarda el historial de la consola y los glifos actuales
-            saved_console = self.console_output.get("1.0", tk.END) if hasattr(self, "console_output") else ""
-            saved_glyphs = list(self.current_glyphs) if hasattr(self, "current_glyphs") else []
-            saved_view = self.current_view
 
             # Destruye todos los widgets y reconstruye la interfaz principal
             for widget in self.winfo_children():
@@ -493,16 +491,29 @@ SYSTEM STATUS REPORT:
             self.setup_ui()
 
             # Restaura el historial de la consola
-            if saved_console and hasattr(self, "console_output"):
+            if hasattr(self, "_saved_console") and hasattr(self, "console_output"):
                 self.console_output.config(state=tk.NORMAL)
                 self.console_output.delete("1.0", tk.END)
-                self.console_output.insert("1.0", saved_console)
+                self.console_output.insert("1.0", self._saved_console)
                 self.console_output.config(state=tk.DISABLED)
                 self.console_output.see(tk.END)
 
             # Restaura la visualización de los glifos
-            if saved_glyphs and hasattr(self, "canvas"):
-                self.visualize_synthex_network(saved_glyphs)
+            if hasattr(self, "_saved_glyphs") and self._saved_glyphs and hasattr(self, "canvas"):
+                self.visualize_synthex_network(self._saved_glyphs)
+
+            # Restaura integridad y amenaza
+            if hasattr(self, "_saved_integrity"):
+                self.system_integrity = self._saved_integrity
+            if hasattr(self, "_saved_threat"):
+                self.threat_level = self._saved_threat
+            self.update_system_status()
+
+            # Restaura historial y procesos
+            if hasattr(self, "_saved_history"):
+                self.console_history = list(self._saved_history)
+            if hasattr(self, "_saved_processes"):
+                self.active_processes = list(self._saved_processes)
 
             # Actualiza los labels de estado si existen
             if hasattr(self, "integrity_label"):
