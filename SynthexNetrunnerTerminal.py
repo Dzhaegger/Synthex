@@ -76,6 +76,100 @@ GLYPH_CONSTELLATIONS = {
 }
 
 class SynthexTerminalEnhanced(tk.Tk):
+    # --- NUEVO: Parámetros de malware y sigilo ---
+    MALWARE_STATS = {
+        "virus":      {"damage": 5,  "stealth": 10, "min_time": 1,  "max_time": 3},
+        "worm":       {"damage": 25, "stealth": 30, "min_time": 15, "max_time": 40},
+        "trojan":     {"damage": 15, "stealth": 20, "min_time": 5,  "max_time": 10},
+        "ransomware": {"damage": 30, "stealth": 10, "min_time": 15, "max_time": 30},
+        "spyware":    {"damage": 5,  "stealth": 50, "min_time": 20, "max_time": 20},
+        "malware":    {"damage": None, "stealth": None, "min_time": 5,  "max_time": 30},
+        "keylogger":  {"damage": 2,  "stealth": 20, "min_time": 2,  "max_time": 60},
+    }
+
+    def update_status_labels(self):
+        self.integrity_label.config(text=f"Integrity: {self.system_integrity}%")
+        self.stealth_label.config(text=f"Stealth: {self.stealth_level}%")
+        self.threat_label.config(text=self.get_stealth_status())
+
+    def get_stealth_status(self):
+        if self.stealth_level >= 80:
+            return "SECURE"
+        elif self.stealth_level >= 40:
+            return "RISK"
+        else:
+            return "DANGER"
+
+    def reduce_stealth_over_time(self):
+        # Reduce stealth by 1 per minute (simulado por cada ataque)
+        if self.mode == "pentester":
+            self.stealth_level = max(0, self.stealth_level - 1)
+            self.update_status_labels()
+
+    def block_input(self, block=True):
+        if block:
+            self.console_input.config(state=tk.DISABLED)
+        else:
+            self.console_input.config(state=tk.NORMAL)
+
+    def malware_attack(self, malware):
+        stats = self.MALWARE_STATS[malware]
+        # Daño y tiempo
+        if malware == "malware":
+            damage = random.randint(10, 40)
+            stealth = random.randint(10, 50)
+            t_min, t_max = stats["min_time"], stats["max_time"]
+            duration = random.randint(t_min, t_max)
+        elif malware == "keylogger":
+            # Keylogger: ataque persistente
+            self.write_to_console("[KEYLOGGER] Attack initiated (persistent)", "#FF00FF")
+            self.block_input(True)
+            total_time = 60
+            interval = 2
+            elapsed = 0
+            while elapsed < total_time:
+                self.progress_bar("Keylogger running", interval, interval)
+                self.system_integrity = max(0, self.system_integrity - stats["damage"])
+                self.stealth_level = max(0, self.stealth_level - stats["stealth"])
+                self.update_status_labels()
+                self.reduce_stealth_over_time()
+                self.update()
+                time.sleep(15)
+                elapsed += interval + 15
+            self.block_input(False)
+            self.write_to_console("[KEYLOGGER] Attack finished", "#FF00FF")
+            return
+        else:
+            damage = stats["damage"]
+            stealth = stats["stealth"]
+            t_min, t_max = stats["min_time"], stats["max_time"]
+            duration = random.randint(t_min, t_max)
+
+        self.write_to_console(f"[{malware.upper()}] Attack in progress...", "#FF00FF")
+        self.block_input(True)
+        self.progress_bar(f"{malware.capitalize()} attacking", duration, duration)
+        self.system_integrity = max(0, self.system_integrity - damage)
+        self.stealth_level = max(0, self.stealth_level - stealth)
+        self.update_status_labels()
+        self.reduce_stealth_over_time()
+        self.block_input(False)
+        self.write_to_console(f"[{malware.upper()}] Attack finished. Damage: {damage}, Stealth lost: {stealth}", "#FF00FF")
+
+    def progress_bar(self, label, total, step=1):
+        bar_len = 30
+        for i in range(0, total+1, step):
+            percent = int((i/total)*100) if total else 100
+            filled = int(bar_len * percent / 100)
+            bar = '[' + '#' * filled + '-' * (bar_len - filled) + f'] {percent}%'
+            self.console_output.config(state=tk.NORMAL)
+            self.console_output.insert(tk.END, f"\r{label}: {bar}")
+            self.console_output.see(tk.END)
+            self.console_output.config(state=tk.DISABLED)
+            self.update()
+            time.sleep(step)
+        self.console_output.config(state=tk.NORMAL)
+        self.console_output.insert(tk.END, "\n")
+        self.console_output.config(state=tk.DISABLED)
     def __init__(self):
         super().__init__()
         self.after_id = None
@@ -86,6 +180,7 @@ class SynthexTerminalEnhanced(tk.Tk):
         # Estado del sistema
         self.current_theme = "classic"
         self.system_integrity = 100
+        self.stealth_level = 100
         self.threat_level = 0
         self.active_processes = []
         self.console_history = []
@@ -196,11 +291,15 @@ class SynthexTerminalEnhanced(tk.Tk):
         status_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
 
         self.integrity_label = tk.Label(status_frame, text="Integrity: 100%", 
-                                      bg=self.bg_color, fg=self.accent_color, font=("Courier", 9))
+            bg=self.bg_color, fg=self.accent_color, font=("Courier", 9))
         self.integrity_label.pack(side=tk.LEFT, padx=5)
 
-        self.threat_label = tk.Label(status_frame, text="Threat: SECURE", 
-                                   bg=self.bg_color, fg=self.accent_color, font=("Courier", 9))
+        self.stealth_label = tk.Label(status_frame, text="Stealth: 100%", 
+            bg=self.bg_color, fg="#00BFFF", font=("Courier", 9, "bold"))
+        self.stealth_label.pack(side=tk.LEFT, padx=5)
+
+        self.threat_label = tk.Label(status_frame, text="Threat: SEGURO", 
+            bg=self.bg_color, fg=self.accent_color, font=("Courier", 9))
         self.threat_label.pack(side=tk.LEFT, padx=5)
 
         # Controles de tema
@@ -264,21 +363,29 @@ class SynthexTerminalEnhanced(tk.Tk):
         bottom_frame.pack(fill=tk.X, pady=(10, 0))
 
         # Botones de acción
+
         tk.Button(bottom_frame, text="Clear Console", command=self.clear_console,
                  bg=self.text_color, fg=self.bg_color, font=("Courier", 10)).pack(side=tk.LEFT, padx=5)
-        
-        tk.Button(bottom_frame, text="System Scan", command=self.system_scan,
-                 bg=self.accent_color, fg=self.bg_color, font=("Courier", 10)).pack(side=tk.LEFT, padx=5)
-        
-        tk.Button(bottom_frame, text="Emergency Reset", command=self.emergency_reset,
-                 bg="#FF4444", fg=self.bg_color, font=("Courier", 10)).pack(side=tk.LEFT, padx=5)
-        
+
+        self.scan_btn = tk.Button(bottom_frame, text="System Scan", command=self.system_scan,
+                 bg=self.accent_color, fg=self.bg_color, font=("Courier", 10))
+        self.scan_btn.pack(side=tk.LEFT, padx=5)
+
+        self.reset_btn = tk.Button(bottom_frame, text="Emergency Reset", command=self.emergency_reset,
+                 bg="#FF4444", fg=self.bg_color, font=("Courier", 10))
+        self.reset_btn.pack(side=tk.LEFT, padx=5)
+
         tk.Button(bottom_frame, text="Exit", command=self.on_close,
                  bg="#555555", fg=self.bg_color, font=("Courier", 10)).pack(side=tk.RIGHT, padx=5)
 
         # Botón para volver a la pantalla de inicio
         tk.Button(bottom_frame, text="Back to Start Screen", command=self.back_to_start_screen,
                  bg="#222222", fg=self.accent_color, font=("Courier", 10, "bold")).pack(side=tk.RIGHT, padx=5)
+
+        # Desactivar botones si es pentester
+        if self.mode == "pentester":
+            self.scan_btn.config(state=tk.DISABLED)
+            self.reset_btn.config(state=tk.DISABLED)
 
         # Almacenamiento para glifos y animaciones
         self.glyph_coords = {}
@@ -359,12 +466,21 @@ class SynthexTerminalEnhanced(tk.Tk):
         elif command == "status":
             self.show_system_status()
         elif command == "scan":
-            self.system_scan()
+            if self.mode == "pentester":
+                self.write_to_console("[!] 'scan' command is disabled in pentester mode.", "#FF4444")
+            else:
+                self.system_scan()
         elif command == "reset":
-            self.emergency_reset()
+            if self.mode == "pentester":
+                self.write_to_console("[!] Emergency reset is blocked during pentester operations.", "#FF4444")
+            else:
+                self.emergency_reset()
         elif command == "test":
-            self.visualize_constellations()
-            self.write_to_console("Displaying all Synthex glyphs in constellations...", "#FFFF00")
+            if self.mode == "pentester":
+                self.write_to_console("[!] 'test' is not available in pentester mode.", "#FF4444")
+            else:
+                self.visualize_constellations()
+                self.write_to_console("Displaying all Synthex glyphs in constellations...", "#FFFF00")
         elif command.startswith("theme "):
             theme_name = command.split(" ", 1)[1]
             if theme_name in THEMES:
@@ -385,6 +501,12 @@ class SynthexTerminalEnhanced(tk.Tk):
         ):
             pass  # Comando reconocido, no hacer nada aún
         elif self.is_attack_command(command):
+            # Si es pentester y malware, ejecutar ataque real
+            if self.mode == "pentester":
+                for malware in self.MALWARE_STATS:
+                    if command.startswith(malware):
+                        self.malware_attack(malware)
+                        return
             self.simulate_attack(command)
         else:
             # Procesar como encriptación normal
