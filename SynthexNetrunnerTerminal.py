@@ -146,13 +146,38 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.setup_ui()
         self.start_animations()
         if mode == "pentester":
-            self.write_to_console("=== PENTESTER MODE ACTIVATED ===", "#FF4136")
+            # Sistema de dificultad aleatorio
+            self.difficulty = random.randint(1, 10)
+            self.write_to_console(f"=== PENTESTER MODE ACTIVATED === (Difficulty: {self.difficulty})", "#FF4136")
             self.write_to_console("You can only attack the system. Type 'help' for attack commands.")
+            # Generar comando de red según dificultad y ejecutarlo en la consola
+            net_cmd = self.generate_network_command_for_difficulty(self.difficulty)
+            self.write_to_console(f"[auto] {net_cmd}", self.text_color)
+            self.console_input.delete(0, tk.END)
+            # Ejecutar el comando como si el usuario lo hubiera escrito
+            self.encrypt_text(net_cmd)
         elif mode == "security":
             self.write_to_console("=== SECURITY OPS MODE ACTIVATED ===", "#00FF00")
             self.write_to_console("You can only counter threats and restore the system. Type 'help' for defense commands.")
         self.write_to_console("Type 'man' for Synthex language manual")
         self.write_to_console("Type 'test' to visualize glyph constellations")
+
+    def generate_network_command_for_difficulty(self, difficulty):
+        """Genera un comando de red Synthex según la dificultad"""
+        # Elementos defensivos y de datos
+        defensivos = ["firewall", "security", "interface", "core"]
+        datos = ["message", "network", "encrypt", "decrypt", "link", "system", "code", "data", "ai"]
+        # Niveles
+        if difficulty <= 3:
+            elems = random.sample(defensivos, 2) + random.sample(datos, 3)
+        elif difficulty <= 6:
+            elems = random.sample(defensivos, 3) + random.sample(datos, 4)
+        elif difficulty <= 8:
+            elems = defensivos + random.sample(datos, 5)
+        else:
+            elems = defensivos + random.sample(datos, 6)
+        random.shuffle(elems)
+        return " ".join(elems)
 
     # --- FIN DE LAS NUEVAS FUNCIONES ---
 
@@ -221,7 +246,7 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.console_input.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
         self.console_input.bind('<Return>', self.process_console_command)
 
-            # Canvas de visualización (derecha)
+        # Canvas de visualización (derecha)
         viz_frame = tk.LabelFrame(middle_frame, text="Network Visualization", 
                                 bg=self.bg_color, fg=self.text_color, font=("Courier", 12))
         viz_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(10, 0))
@@ -230,7 +255,6 @@ class SynthexTerminalEnhanced(tk.Tk):
                                highlightbackground=self.text_color, width=900)
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        
         # Bind para tooltips
         self.canvas.bind('<Motion>', self.show_glyph_tooltip)
         self.canvas.bind('<Button-1>', self.on_glyph_click)
@@ -252,11 +276,24 @@ class SynthexTerminalEnhanced(tk.Tk):
         tk.Button(bottom_frame, text="Exit", command=self.on_close,
                  bg="#555555", fg=self.bg_color, font=("Courier", 10)).pack(side=tk.RIGHT, padx=5)
 
+        # Botón para volver a la pantalla de inicio
+        tk.Button(bottom_frame, text="Back to Start Screen", command=self.back_to_start_screen,
+                 bg="#222222", fg=self.accent_color, font=("Courier", 10, "bold")).pack(side=tk.RIGHT, padx=5)
+
         # Almacenamiento para glifos y animaciones
         self.glyph_coords = {}
         self.current_glyphs = []
         # --- NUEVO: diccionario para guardar a qué constelación pertenece cada glifo ---
         self.glyph_constellation_map = {}
+
+    def back_to_start_screen(self):
+        # Clear all widgets from the root window
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.start_screen()
+        # Para reiniciar la app desde cero, podrías usar os.execl o similar si lo deseas
+      
+        # Para reiniciar la app desde cero, podrías usar os.execl o similar si lo deseas
         
     def write_to_console(self, text, color=None):
         """Escribe texto en la consola"""
@@ -287,15 +324,32 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.write_to_console(f">> {command}", self.text_color)
         self.console_history.append(command)
 
+        # Comandos y elementos permitidos en modo pentester
+        pentester_commands = [
+            # MALWARE CLASSIFICATIONS
+            "virus", "worm", "trojan", "ransomware", "spyware", "malware", "keylogger",
+            # ATTACK SIMULATION
+            "breach", "corrupt", "probe", "exploit",
+            # EXPLOITATION TOOLS
+            "exploit", "backdoor", "root", "admin", "botnet",
+        ]
+        pentester_elements = [
+            "message", "network", "encrypt", "decrypt", "link", "system", "code", "data",
+            "firewall", "security", "breach", "interface", "core"
+        ]
+
+        # Comandos con argumentos
+        pentester_prefixes = [
+            "breach ", "corrupt ", "probe ", "exploit ",
+        ]
+
         # Procesar comandos especiales
         if command == "help":
             self.show_help()
         elif command == "man":
             self.show_manual()
-        # --- AÑADE ESTA LÍNEA ---
         elif command == "alpha":
             self.show_synthex_alphabet()
-        # --- FIN DEL CÓDIGO A AÑADIR ---
         elif command == "enc":
             self.show_encryption_view()
         elif command == "dec":
@@ -323,6 +377,13 @@ class SynthexTerminalEnhanced(tk.Tk):
         elif command.startswith("decrypt "):
             synthex_text = command.split(" ", 1)[1]
             self.decrypt_text(synthex_text)
+        # Reconocimiento de comandos y elementos pentester
+        elif self.mode == "pentester" and (
+            command in pentester_commands
+            or command in pentester_elements
+            or any(command.startswith(prefix) for prefix in pentester_prefixes)
+        ):
+            pass  # Comando reconocido, no hacer nada aún
         elif self.is_attack_command(command):
             self.simulate_attack(command)
         else:
