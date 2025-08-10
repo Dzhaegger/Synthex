@@ -55,9 +55,11 @@ GLYPH_SHAPES = {
 THEMES = {
     "classic": {"bg": "#000000", "text": "#00FF00", "accent": "#00FFFF"},
     "ice": {"bg": "#001F3F", "text": "#7FDBFF", "accent": "#007BFF"},
+    "neon": {"bg": "#191970", "text": "#F0F8FF", "accent": "#FF69B4"},
     "fire": {"bg": "#3D0000", "text": "#FF4136", "accent": "#FF851B"},
-    "matrix": {"bg": "#000000", "text": "#00FF41", "accent": "#00FFFF"},
-    "neon": {"bg": "#191970", "text": "#F0F8FF", "accent": "#FF69B4"}
+    "netrunner": {"bg": "#420016", "text": "#A10036", "accent": "#2ddbdb"},
+    "matrix": {"bg": "#000000", "text": "#00FF22", "accent": "#00ff22"},
+    
 }
 
 # Listas para la lógica de animación
@@ -76,11 +78,11 @@ GLYPH_CONSTELLATIONS = {
 class SynthexTerminalEnhanced(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.after_id = None  # <--- Añade esta línea
+        self.after_id = None
         self.title("Synthex Netrunner Terminal v2.0 - Enhanced")
         self.geometry("1600x900")
         #self.iconbitmap("synthex.ico")
-    
+
         # Estado del sistema
         self.current_theme = "classic"
         self.system_integrity = 100
@@ -90,13 +92,12 @@ class SynthexTerminalEnhanced(tk.Tk):
         self.data_flow_points = []
         self.glyph_tooltips = {}
 
-        # Track current view for reliable restoration
-        self.current_view = "start"  # Possible values: start, terminal, alphabet, encryption, decryption
+        # --- NUEVO: modo de operación ---
+        self.mode = None  # "pentester" o "security"
 
+        self.current_view = "start"
         self.apply_theme()
-        # --- CAMBIO AQUI: Ahora la app empieza con la pantalla de inicio ---
         self.start_screen()
-        # --- FIN DEL CAMBIO ---
 
     def apply_theme(self):
         theme = THEMES[self.current_theme]
@@ -115,29 +116,44 @@ class SynthexTerminalEnhanced(tk.Tk):
 
         tk.Label(self.start_frame, text="SYNTHEX NETRUNNER TERMINAL", font=("Courier", 32, "bold"), fg=self.accent_color, bg=self.bg_color).pack(pady=20)
         tk.Label(self.start_frame, text=">>> SYSTEM PROTOCOL v2.0 READY <<<", font=("Courier", 24), fg=self.text_color, bg=self.bg_color).pack(pady=10)
-        tk.Label(self.start_frame, text="Accessing core infrastructure requires authorization...", font=("Courier", 16), fg=self.text_color, bg=self.bg_color).pack(pady=40)
+        tk.Label(self.start_frame, text="Select your operation mode:", font=("Courier", 16), fg=self.text_color, bg=self.bg_color).pack(pady=40)
 
-        # Botones
-        tk.Button(self.start_frame, text="JACK IN (Iniciar Terminal)", font=("Courier", 14, "bold"), 
-                  bg=self.accent_color, fg=self.bg_color, command=self.start_terminal,
-                  activebackground=self.text_color, activeforeground=self.bg_color,
-                  bd=3, relief=tk.RAISED).pack(pady=10, ipadx=20, ipady=10)
-        
+        # --- NUEVOS BOTONES DE MODOS ---
+        btn_frame = tk.Frame(self.start_frame, bg=self.bg_color)
+        btn_frame.pack(pady=10)
+
+        tk.Button(btn_frame, text="PENTESTER (Attack System)", font=("Courier", 14, "bold"),
+                  bg="#FF4136", fg=self.bg_color, command=lambda: self.launch_terminal_mode("pentester"),
+                  activebackground="#FF851B", activeforeground=self.bg_color,
+                  bd=3, relief=tk.RAISED).pack(side=tk.LEFT, padx=20, ipadx=20, ipady=10)
+
+        tk.Button(btn_frame, text="SECURITY OPS (Defend System)", font=("Courier", 14, "bold"),
+                  bg="#00FF00", fg=self.bg_color, command=lambda: self.launch_terminal_mode("security"),
+                  activebackground="#007BFF", activeforeground=self.bg_color,
+                  bd=3, relief=tk.RAISED).pack(side=tk.LEFT, padx=20, ipadx=20, ipady=10)
+
+        # Botón de manual
         tk.Button(self.start_frame, text="MANUAL (Ver Guía)", font=("Courier", 14), 
                   bg=self.text_color, fg=self.bg_color, command=self.show_manual,
                   activebackground=self.accent_color, activeforeground=self.bg_color,
-                  bd=3, relief=tk.RAISED).pack(pady=10, ipadx=20, ipady=10)
-    
-    def start_terminal(self):
-        """Destruye la pantalla de inicio y crea la terminal"""
+                  bd=3, relief=tk.RAISED).pack(pady=20, ipadx=20, ipady=10)
+
+    def launch_terminal_mode(self, mode):
+        """Lanza la terminal en el modo seleccionado"""
+        self.mode = mode
         self.current_view = "terminal"
         self.start_frame.destroy()
         self.setup_ui()
         self.start_animations()
-        self.write_to_console("=== SYNTHEX TERMINAL v2.0 INITIALIZED ===")
-        self.write_to_console("Type 'help' for available commands")
+        if mode == "pentester":
+            self.write_to_console("=== PENTESTER MODE ACTIVATED ===", "#FF4136")
+            self.write_to_console("You can only attack the system. Type 'help' for attack commands.")
+        elif mode == "security":
+            self.write_to_console("=== SECURITY OPS MODE ACTIVATED ===", "#00FF00")
+            self.write_to_console("You can only counter threats and restore the system. Type 'help' for defense commands.")
         self.write_to_console("Type 'man' for Synthex language manual")
         self.write_to_console("Type 'test' to visualize glyph constellations")
+
     # --- FIN DE LAS NUEVAS FUNCIONES ---
 
     def setup_ui(self):
