@@ -76,6 +76,10 @@ GLYPH_CONSTELLATIONS = {
 }
 
 class SynthexTerminalEnhanced(tk.Tk):
+    # --- Estados persistentes para modo pentester ---
+    pentester_integrity = None
+    pentester_stealth_level = None
+    pentester_stealth_status = None
     # --- NUEVO: Parámetros de malware y sigilo ---
     MALWARE_STATS = {
         "virus":      {"damage": 5,  "stealth": 10, "min_time": 1,  "max_time": 3},
@@ -113,7 +117,67 @@ class SynthexTerminalEnhanced(tk.Tk):
             self.console_input.config(state=tk.NORMAL)
 
     def malware_attack(self, malware):
+        # --- NUEVO: Selección de target antes de lanzar el ataque ---
+        # Solo permite atacar si hay al menos un target en la red actual
+        if not self.current_glyphs or len(self.current_glyphs) < 2:
+            self.write_to_console("[ERROR] No valid targets in the current network. Run a command to generate a network first.", "#FF4444")
+            return
+
+        # Mostrar lista de posibles targets (excluyendo el malware mismo si está en la red)
+        possible_targets = []
+        for idx, glyph in enumerate(self.current_glyphs):
+            word = REV_SYNTHEX_DICTIONARY.get(glyph, "")
+            if word not in self.MALWARE_STATS:  # No atacar otros malware
+                possible_targets.append((idx, word, glyph))
+
+        if not possible_targets:
+            self.write_to_console("[ERROR] No valid targets found in the current network.", "#FF4444")
+            return
+
+        # Si solo hay un target, seleccionarlo automáticamente
+        if len(possible_targets) == 1:
+            target_idx, target_word, target_glyph = possible_targets[0]
+            self._launch_malware_attack(malware, (target_idx, target_word, target_glyph))
+        else:
+            # Mostrar lista de targets y pedir selección por consola
+            self.write_to_console("Select a target to attack:", "#FFFF00")
+            for i, (idx, word, glyph) in enumerate(possible_targets):
+                self.write_to_console(f"  [{i+1}] {word.upper()} ({glyph})", "#FFFF00")
+            self.write_to_console("Type the number of the target and press Enter.", "#FFFF00")
+
+            # Guardar el malware y los posibles targets para el input handler
+            self._pending_malware = malware
+            self._pending_targets = possible_targets
+
+            # Cambiar el handler de input solo para la selección de target
+            self.console_input.unbind('<Return>')
+            self.console_input.bind('<Return>', self._on_target_input, add='+')
+
+    def _on_target_input(self, event):
+        value = self.console_input.get().strip()
+        self.console_input.delete(0, tk.END)
+        try:
+            num = int(value)
+            if 1 <= num <= len(self._pending_targets):
+                # Restaurar el handler normal de la consola
+                self.console_input.unbind('<Return>')
+                self.console_input.bind('<Return>', self.process_console_command)
+                self.block_input(True)
+                target_tuple = self._pending_targets[num-1]
+                malware = self._pending_malware
+                # Limpiar los temporales
+                del self._pending_malware
+                del self._pending_targets
+                self._launch_malware_attack(malware, target_tuple)
+            else:
+                self.write_to_console("[ERROR] Invalid selection. Try again.", "#FF4444")
+        except Exception:
+            self.write_to_console("[ERROR] Invalid input. Enter a number.", "#FF4444")
+
+    def _launch_malware_attack(self, malware, target_tuple):
         stats = self.MALWARE_STATS[malware]
+        target_idx, target_word, target_glyph = target_tuple
+
         # Daño y tiempo
         if malware == "malware":
             damage = random.randint(10, 40)
@@ -122,22 +186,28 @@ class SynthexTerminalEnhanced(tk.Tk):
             duration = random.randint(t_min, t_max)
         elif malware == "keylogger":
             # Keylogger: ataque persistente
-            self.write_to_console("[KEYLOGGER] Attack initiated (persistent)", "#FF00FF")
+            self.write_to_console(f"[KEYLOGGER] Attack initiated on {target_word.upper()} (persistent)", "#FF00FF")
             self.block_input(True)
             total_time = 60
             interval = 2
             elapsed = 0
-            while elapsed < total_time:
-                self.progress_bar("Keylogger running", interval, interval)
-                self.system_integrity = max(0, self.system_integrity - stats["damage"])
-                self.stealth_level = max(0, self.stealth_level - stats["stealth"])
-                self.update_status_labels()
-                self.reduce_stealth_over_time()
-                self.update()
-                time.sleep(15)
-                elapsed += interval + 15
-            self.block_input(False)
-            self.write_to_console("[KEYLOGGER] Attack finished", "#FF00FF")
+            def keylogger_progress():
+                nonlocal elapsed
+                if elapsed < total_time:
+                    self.show_progress_bar(f"Keylogger running on {target_word.upper()}", elapsed, total_time)
+                    self.system_integrity = max(0, self.system_integrity - stats["damage"])
+                    self.stealth_level = max(0, self.stealth_level - stats["stealth"])
+                    self.update_status_labels()
+                    self.reduce_stealth_over_time()
+                    elapsed += interval
+                    self.after(15000, keylogger_progress)  # 15 segundos entre intervalos
+                else:
+                    self.block_input(False)
+                    self.show_progress_bar(f"Keylogger running on {target_word.upper()}", total_time, total_time, done=True)
+                    self.write_to_console(f"[KEYLOGGER] Attack on {target_word.upper()} finished", "#FF00FF")
+                    # Actualizar red visual con keylogger
+                    self._refresh_network_with_malware(malware)
+            keylogger_progress()
             return
         else:
             damage = stats["damage"]
@@ -145,31 +215,75 @@ class SynthexTerminalEnhanced(tk.Tk):
             t_min, t_max = stats["min_time"], stats["max_time"]
             duration = random.randint(t_min, t_max)
 
-        self.write_to_console(f"[{malware.upper()}] Attack in progress...", "#FF00FF")
+        self.write_to_console(f"[{malware.upper()}] Attack in progress on {target_word.upper()}...", "#FF00FF")
         self.block_input(True)
-        self.progress_bar(f"{malware.capitalize()} attacking", duration, duration)
-        self.system_integrity = max(0, self.system_integrity - damage)
-        self.stealth_level = max(0, self.stealth_level - stealth)
-        self.update_status_labels()
-        self.reduce_stealth_over_time()
-        self.block_input(False)
-        self.write_to_console(f"[{malware.upper()}] Attack finished. Damage: {damage}, Stealth lost: {stealth}", "#FF00FF")
+        self.show_progress_bar(f"{malware.capitalize()} attacking {target_word.upper()}", 0, duration)
+        def attack_progress(step=0):
+            if step <= duration:
+                self.show_progress_bar(f"{malware.capitalize()} attacking {target_word.upper()}", step, duration)
+                self.after(1000, lambda: attack_progress(step + 1))
+            else:
+                self.system_integrity = max(0, self.system_integrity - damage)
+                self.stealth_level = max(0, self.stealth_level - stealth)
+                self.update_status_labels()
+                self.reduce_stealth_over_time()
+                self.block_input(False)
+                self.show_progress_bar(f"{malware.capitalize()} attacking {target_word.upper()}", duration, duration, done=True)
+                self.write_to_console(f"[{malware.upper()}] Attack on {target_word.upper()} finished. Damage: {damage}, Stealth lost: {stealth}", "#FF00FF")
+                # Actualizar red visual con malware
+                self._refresh_network_with_malware(malware)
+        attack_progress()
 
-    def progress_bar(self, label, total, step=1):
-        bar_len = 30
-        for i in range(0, total+1, step):
-            percent = int((i/total)*100) if total else 100
-            filled = int(bar_len * percent / 100)
-            bar = '[' + '#' * filled + '-' * (bar_len - filled) + f'] {percent}%'
-            self.console_output.config(state=tk.NORMAL)
-            self.console_output.insert(tk.END, f"\r{label}: {bar}")
-            self.console_output.see(tk.END)
-            self.console_output.config(state=tk.DISABLED)
-            self.update()
-            time.sleep(step)
+    def _refresh_network_with_malware(self, malware):
+        # Añadir el malware a la red actual y regenerar la visualización
+        # Evitar duplicados
+        malware_glyph = SYNTHEX_DICTIONARY.get(malware, UNKNOWN_GLYPH)
+        if malware_glyph not in self.current_glyphs:
+            new_glyphs = list(self.current_glyphs) + [malware_glyph]
+            self.current_glyphs = new_glyphs
+            self.visualize_synthex_network(self.current_glyphs)
+            self.write_to_console(f"Network updated: {malware.upper()} now present in the network.", "#FF00FF")
+        else:
+            # Si ya está, solo refresca la visualización
+            self.visualize_synthex_network(self.current_glyphs)
+
+    def show_progress_bar(self, label, value, total, done=False):
+        # Solo una barra: borra cualquier barra previa antes de mostrar la nueva
         self.console_output.config(state=tk.NORMAL)
-        self.console_output.insert(tk.END, "\n")
+        # Buscar y eliminar cualquier línea previa de barra de progreso
+        lines = self.console_output.get("1.0", tk.END).splitlines()
+        bar_prefix = f"{label}: ["
+        # Encuentra la línea de barra de progreso previa (si existe)
+        bar_line_index = None
+        for idx, line in enumerate(lines):
+            if line.startswith(bar_prefix):
+                bar_line_index = idx + 1  # Tkinter Text widget lines start at 1
+                break
+        if bar_line_index is not None:
+            self.console_output.delete(f"{bar_line_index}.0", f"{bar_line_index}.0 lineend+1c")
+
+        percent = int((value / total) * 100) if total else 100
+        bar_len = 30
+        filled = int(bar_len * percent / 100)
+        bar = '[' + '#' * filled + '-' * (bar_len - filled) + f'] {percent}%'
+        progress_text = f"{label}: {bar}"
+
+        self.console_output.insert(tk.END, progress_text + "\n")
+        self.console_output.see(tk.END)
         self.console_output.config(state=tk.DISABLED)
+
+        if done:
+            # Elimina la barra de progreso final después de un breve tiempo
+            def clear_bar():
+                self.console_output.config(state=tk.NORMAL)
+                # Buscar y eliminar la barra final
+                lines = self.console_output.get("1.0", tk.END).splitlines()
+                for idx, line in enumerate(lines):
+                    if line.startswith(bar_prefix):
+                        self.console_output.delete(f"{idx+1}.0", f"{idx+1}.0 lineend+1c")
+                        break
+                self.console_output.config(state=tk.DISABLED)
+            self.after(500, clear_bar)
     def __init__(self):
         super().__init__()
         self.after_id = None
@@ -189,6 +303,12 @@ class SynthexTerminalEnhanced(tk.Tk):
 
         # --- NUEVO: modo de operación ---
         self.mode = None  # "pentester" o "security"
+
+        # Restaurar estados pentester si existen
+        if SynthexTerminalEnhanced.pentester_integrity is not None:
+            self.system_integrity = SynthexTerminalEnhanced.pentester_integrity
+        if SynthexTerminalEnhanced.pentester_stealth_level is not None:
+            self.stealth_level = SynthexTerminalEnhanced.pentester_stealth_level
 
         self.current_view = "start"
         self.apply_theme()
@@ -298,7 +418,7 @@ class SynthexTerminalEnhanced(tk.Tk):
             bg=self.bg_color, fg="#00BFFF", font=("Courier", 9, "bold"))
         self.stealth_label.pack(side=tk.LEFT, padx=5)
 
-        self.threat_label = tk.Label(status_frame, text="Threat: SEGURO", 
+        self.threat_label = tk.Label(status_frame, text="Threat: SECURE", 
             bg=self.bg_color, fg=self.accent_color, font=("Courier", 9))
         self.threat_label.pack(side=tk.LEFT, padx=5)
 
@@ -500,14 +620,16 @@ class SynthexTerminalEnhanced(tk.Tk):
             or any(command.startswith(prefix) for prefix in pentester_prefixes)
         ):
             pass  # Comando reconocido, no hacer nada aún
-        elif self.is_attack_command(command):
-            # Si es pentester y malware, ejecutar ataque real
-            if self.mode == "pentester":
-                for malware in self.MALWARE_STATS:
-                    if command.startswith(malware):
-                        self.malware_attack(malware)
-                        return
-            self.simulate_attack(command)
+        elif self.mode == "pentester":
+            # Solo permitir ataques con el nuevo sistema: 'dp <malware>'
+            if command.startswith("dp "):
+                malware = command[3:].strip()
+                if malware in self.MALWARE_STATS:
+                    self.malware_attack(malware)
+                else:
+                    self.write_to_console(f"[!] '{malware}' is not a valid malware type.", "#FF4444")
+            # No ejecutar ataques para otros comandos
+            return
         else:
             # Procesar como encriptación normal
             self.encrypt_text(command)
@@ -707,6 +829,16 @@ SYSTEM STATUS REPORT:
             if hasattr(self, "_saved_threat"):
                 self.threat_level = self._saved_threat
             self.update_system_status()
+
+            # --- Restaurar estados especiales de pentester ---
+            if self.mode == "pentester":
+                if SynthexTerminalEnhanced.pentester_integrity is not None:
+                    self.system_integrity = SynthexTerminalEnhanced.pentester_integrity
+                if SynthexTerminalEnhanced.pentester_stealth_level is not None:
+                    self.stealth_level = SynthexTerminalEnhanced.pentester_stealth_level
+                if SynthexTerminalEnhanced.pentester_stealth_status is not None and hasattr(self, "threat_label"):
+                    self.threat_label.config(text=SynthexTerminalEnhanced.pentester_stealth_status)
+                self.update_status_labels()
 
             # Restaura historial y procesos
             if hasattr(self, "_saved_history"):
@@ -1007,6 +1139,14 @@ SYSTEM STATUS REPORT:
         # Guarda los procesos activos
         self._saved_processes = list(self.active_processes)
 
+        # --- Guardar estados especiales de pentester ---
+        if self.mode == "pentester":
+            SynthexTerminalEnhanced.pentester_integrity = self.system_integrity
+            SynthexTerminalEnhanced.pentester_stealth_level = self.stealth_level
+            # Guardar el status de sigilo textual (label)
+            if hasattr(self, "threat_label"):
+                SynthexTerminalEnhanced.pentester_stealth_status = self.threat_label.cget("text")
+
     def _restore_terminal_state(self):
         """Restaura el estado previo de la terminal después de salir de vistas secundarias."""
         # Destruye todos los widgets y reconstruye la interfaz principal
@@ -1047,6 +1187,16 @@ SYSTEM STATUS REPORT:
 
         # Inicia animaciones si corresponde
         self.start_animations()
+
+        # --- Restaurar estados especiales de pentester ---
+        if self.mode == "pentester":
+            if SynthexTerminalEnhanced.pentester_integrity is not None:
+                self.system_integrity = SynthexTerminalEnhanced.pentester_integrity
+            if SynthexTerminalEnhanced.pentester_stealth_level is not None:
+                self.stealth_level = SynthexTerminalEnhanced.pentester_stealth_level
+            if SynthexTerminalEnhanced.pentester_stealth_status is not None and hasattr(self, "threat_label"):
+                self.threat_label.config(text=SynthexTerminalEnhanced.pentester_stealth_status)
+            self.update_status_labels()
 
 
     def show_blackwall(self):
@@ -1298,21 +1448,41 @@ SYSTEM STATUS REPORT:
         click_x, click_y = event.x, event.y
         min_distance = float('inf')
         closest_glyph_index = None
-        
-        # Iterar a través de los glifos dibujados
-        for index, (x, y) in self.glyph_coords.items():
+        # Buscar el glifo más cercano al click
+        for index, value in self.glyph_coords.items():
+            # value puede ser (x, y, word) o (x, y)
+            if len(value) == 3:
+                x, y, word = value
+            else:
+                x, y = value
+                word = None
             distance = math.sqrt((click_x - x)**2 + (click_y - y)**2)
-            if distance < min_distance and distance < 20: # Radio de clic
+            if distance < min_distance and distance < 40:
                 min_distance = distance
                 closest_glyph_index = index
-        
+                closest_word = word
         if closest_glyph_index is not None:
-            # Obtener el tooltip del glifo
-            tooltip_text = self.glyph_tooltips.get(closest_glyph_index, "Unknown glyph")
-            # Obtener el nombre de la constelación si existe
-            constellation_name = self.glyph_constellation_map.get(closest_glyph_index, "No Constellation")
-            
-            self.write_to_console(f"Glyph selected: {tooltip_text} (Constellation: {constellation_name})", "#FFFF00")
+            # Determinar el glifo y la palabra asociada
+            glyph = self.current_glyphs[closest_glyph_index] if self.current_glyphs and closest_glyph_index < len(self.current_glyphs) else None
+            # Si no se obtuvo la palabra, buscar por el glifo
+            word = closest_word
+            if not word and glyph:
+                word = REV_SYNTHEX_DICTIONARY.get(glyph, None)
+            if not word:
+                self.write_to_console(f"[?] Unknown glyph: {glyph if glyph else '?'}", "#FF00FF")
+                return
+            # Buscar constelación a la que pertenece
+            found_constellation = None
+            for const_name, words in GLYPH_CONSTELLATIONS.items():
+                if word in words:
+                    found_constellation = const_name
+                    break
+            if found_constellation:
+                self.write_to_console(f"[GLYPH] '{word.upper()}' ({glyph}) → {found_constellation}", "#00FFFF")
+            else:
+                self.write_to_console(f"[GLYPH] '{word.upper()}' ({glyph}) → (No constellation group)", "#00FFFF")
+        # Si no está cerca de ningún glifo, no hacer nada
+        return
 
     def start_animations(self):
         """Inicia las animaciones del canvas"""
